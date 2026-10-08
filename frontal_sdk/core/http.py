@@ -321,6 +321,7 @@ class HttpClient:
             raise ValueError("stream() requires a STREAM operation")
         url = _request_url(self._config.base_url, operation, path_params, query)
         attempt = 0
+        emitted = False
         while True:
             try:
                 with self._client.stream(
@@ -357,18 +358,20 @@ class HttpClient:
                             line, event, event_id, data_lines
                         )
                         if parsed is not None:
+                            emitted = True
                             yield parsed
                     if data_lines:
+                        emitted = True
                         yield _event(event, event_id, data_lines)
                     return
             except httpx.TimeoutException as error:
-                if attempt < self._config.max_retries:
+                if not emitted and attempt < self._config.max_retries:
                     time_sleep(_retry_delay(attempt, None))
                     attempt += 1
                     continue
                 raise TimeoutError(f"Stream request timed out: {error}") from error
             except httpx.RequestError as error:
-                if attempt < self._config.max_retries:
+                if not emitted and attempt < self._config.max_retries:
                     time_sleep(_retry_delay(attempt, None))
                     attempt += 1
                     continue
@@ -684,6 +687,7 @@ class AsyncHttpClient:
             raise ValueError("stream() requires a STREAM operation")
         url = _request_url(self._config.base_url, operation, path_params, query)
         attempt = 0
+        emitted = False
         while True:
             try:
                 async with self._client.stream(
@@ -721,18 +725,20 @@ class AsyncHttpClient:
                             line, event, event_id, data_lines
                         )
                         if parsed is not None:
+                            emitted = True
                             yield parsed
                     if data_lines:
+                        emitted = True
                         yield _event(event, event_id, data_lines)
                     return
             except httpx.TimeoutException as error:
-                if attempt < self._config.max_retries:
+                if not emitted and attempt < self._config.max_retries:
                     await anyio.sleep(_retry_delay(attempt, None))
                     attempt += 1
                     continue
                 raise TimeoutError(f"Stream request timed out: {error}") from error
             except httpx.RequestError as error:
-                if attempt < self._config.max_retries:
+                if not emitted and attempt < self._config.max_retries:
                     await anyio.sleep(_retry_delay(attempt, None))
                     attempt += 1
                     continue

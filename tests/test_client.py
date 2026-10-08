@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
 import httpx
@@ -19,6 +19,7 @@ from frontal_sdk import (
     GenerateObjectResult,
     GenerateTextResult,
     MultipartPart,
+    NetworkError,
     PageResult,
     RateLimitError,
     ServerEvent,
@@ -37,6 +38,27 @@ API_URL = "https://api.frontal.dev/v1"
 
 def _sse_response(events: list[object]) -> bytes:
     return b"".join(f"data: {json.dumps(event)}\n\n".encode() for event in events)
+
+
+class _InterruptedSyncSSE(httpx.SyncByteStream):
+    def __iter__(self) -> Iterator[bytes]:
+        yield b'data: {"step":1}\n\n'
+        raise httpx.ReadError("stream disconnected")
+
+    def close(self) -> None:
+        pass
+
+
+class _InterruptedAsyncSSE(httpx.AsyncByteStream):
+    def __aiter__(self) -> AsyncIterator[bytes]:
+        return self._chunks()
+
+    async def _chunks(self) -> AsyncIterator[bytes]:
+        yield b'data: {"step":1}\n\n'
+        raise httpx.ReadError("stream disconnected")
+
+    async def aclose(self) -> None:
+        pass
 
 
 @pytest.mark.parametrize("api_key", ["plain-key", "frt_", "frt_abcd", "frt_bad.key"])
@@ -929,6 +951,27 @@ def test_sync_sse_stream(respx_mock: respx.Router) -> None:
     client.close()
 
 
+def test_sync_sse_stream_does_not_retry_after_yielding_an_event(
+    respx_mock: respx.Router,
+) -> None:
+    route = respx_mock.get(f"{API_URL}/agents/runs/run_1/stream").mock(
+        return_value=httpx.Response(
+            200,
+            headers={"Content-Type": "text/event-stream"},
+            stream=_InterruptedSyncSSE(),
+        )
+    )
+    client = Frontal("frt_local_key", max_retries=2)
+    events = client.agents.stream_agents_runs_by_param_1_stream("run_1")
+
+    assert next(events) == ServerEvent("message", {"step": 1}, None)
+    with pytest.raises(NetworkError, match="Stream request failed"):
+        next(events)
+
+    assert route.call_count == 1
+    client.close()
+
+
 @pytest.mark.anyio
 async def test_async_request_and_retry(respx_mock: respx.Router) -> None:
     route = respx_mock.get(f"{API_URL}/health").mock(
@@ -1020,6 +1063,26 @@ async def test_async_error_mapping_and_sse(respx_mock: respx.Router) -> None:
     assert raised.value.request_id == "req_async"
     assert events == [ServerEvent("message", {"step": 1}, None)]
     assert stream_route.called
+
+
+@pytest.mark.anyio
+async def test_async_sse_stream_does_not_retry_after_yielding_an_event(
+    respx_mock: respx.Router,
+) -> None:
+    route = respx_mock.get(f"{API_URL}/agents/runs/run_2/stream").mock(
+        return_value=httpx.Response(
+            200,
+            headers={"Content-Type": "text/event-stream"},
+            stream=_InterruptedAsyncSSE(),
+        )
+    )
+    async with AsyncFrontal("frt_local_key", max_retries=2) as client:
+        events = client.agents.stream_agents_runs_by_param_1_stream("run_2")
+        assert await events.__anext__() == ServerEvent("message", {"step": 1}, None)
+        with pytest.raises(NetworkError, match="Stream request failed"):
+            await events.__anext__()
+
+    assert route.call_count == 1
 
 
 def test_sync_pagination_and_polling() -> None:
