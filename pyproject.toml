@@ -39,8 +39,8 @@ Changelog = "https://github.com/frontal-labs/sdk-python/blob/main/CHANGELOG.md"
 [project.optional-dependencies]
 dev = [
     "build>=1.2",
-    "mypy>=1.15,<2",
-    "pytest>=8.3,<9",
+    "mypy>=1.15,<3",
+    "pytest>=8.3,<10",
     "respx>=0.22",
     "ruff>=0.9",
     "towncrier>=24.8",
