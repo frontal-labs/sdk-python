@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from math import isfinite
 from types import MappingProxyType
 from urllib.parse import urlsplit
+
+_API_KEY_PATTERN = re.compile(r"frt_[A-Za-z0-9_-]+")
 
 
 @dataclass(frozen=True)
@@ -21,8 +24,10 @@ class ClientConfig:
 
     def __post_init__(self) -> None:
         parsed = urlsplit(self.base_url)
-        if not self.api_key.strip():
-            raise ValueError("api_key must not be empty")
+        if len(self.api_key) < 9 or _API_KEY_PATTERN.fullmatch(self.api_key) is None:
+            raise ValueError(
+                "api_key must start with 'frt_' and contain base64url characters"
+            )
         if (
             parsed.scheme not in {"http", "https"}
             or not parsed.netloc

@@ -31,6 +31,12 @@ from pydantic import Field
 API_URL = "https://api.frontal.dev/v1"
 
 
+@pytest.mark.parametrize("api_key", ["plain-key", "frt_", "frt_abcd", "frt_bad.key"])
+def test_client_rejects_malformed_api_key(api_key: str) -> None:
+    with pytest.raises(ValueError, match="api_key must start with 'frt_'"):
+        Frontal(api_key)
+
+
 @pytest.fixture
 def respx_mock() -> Iterator[respx.Router]:
     with respx.mock(assert_all_called=False) as router:
