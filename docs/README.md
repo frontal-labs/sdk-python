@@ -1,3 +1,9 @@
 # Python documentation
 
-Read `ARCHITECTURE.md` for the Python package layout, `RESOURCES.md` for the API resource methods, `ONBOARDING.md` to set up the toolchain, and [`../templates/README.md`](../templates/README.md) for Python starter projects.
+- [Overview](OVERVIEW.md) — install, clients, service attributes, and type boundaries.
+- [Architecture](ARCHITECTURE.md) — package layout, config, transport, and retries.
+- [API resources](RESOURCES.md) — AI helpers, builders, and endpoint methods.
+- [Testing](TESTING.md) — offline RESPX coverage and runnable documentation.
+- [Developer guide](DEVELOPERS.md) and [onboarding](ONBOARDING.md) — repository workflow.
+- [Security](SECURITY.md), [publishing](PUBLISHING.md), and [releasing](RELEASING.md).
+- [Starter templates](../templates/README.md) and [runnable examples](../examples/README.md).

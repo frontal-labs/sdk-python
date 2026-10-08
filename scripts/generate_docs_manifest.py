@@ -9,11 +9,14 @@ paths = sorted(
     p
     for p in ROOT.rglob("*.md")
     if ".git" not in p.parts
+    and ".venv" not in p.parts
     and ".pytest_cache" not in p.parts
     and ".mypy_cache" not in p.parts
     and ".ruff_cache" not in p.parts
+    and "node_modules" not in p.parts
     and "target" not in p.parts
     and "build" not in p.parts
+    and "dist" not in p.parts
     and p.name != "PLAN.md"
 )
 documents = [

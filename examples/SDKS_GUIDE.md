@@ -1,19 +1,67 @@
 # Python SDK integration guide
 
-Install the SDK from the repository root during development:
+The PyPI distribution is `frontal`; import its `frontal_sdk` package. For
+development inside this repository, install the locked environment with:
 
 ```bash
 uv sync --extra dev
 ```
 
-Set `FRONTAL_API_KEY` in the environment, then use the unified client and typed resource methods:
+## Create and close clients
+
+Pass `api_key` directly, or set `FRONTAL_API_KEY` in the process environment.
+The client also reads `FRONTAL_API_URL`, `FRONTAL_ENV`, and `FRONTAL_DEBUG`.
+Python does not load `.env` files automatically.
 
 ```python
 from frontal_sdk import Frontal
 
-client = Frontal.from_env()
-health = client.ai.get_health()
-agents = client.agents.get_agents(query={"limit": 20})
+with Frontal() as client:
+    result = client.ai.generate_text(
+        {"model": "frontal-ai-fast", "prompt": "Say hello."}
+    )
+    print(result.text)
 ```
 
-Path parameters are required positional arguments, query parameters use `query=`, and write requests accept a JSON `body=`. See [`docs/RESOURCES.md`](../docs/RESOURCES.md) for multipart, raw response, and streaming methods.
+For asyncio applications, use `AsyncFrontal`; do not call the synchronous
+client from an async event loop:
+
+```python
+import asyncio
+from frontal_sdk import AsyncFrontal
+
+
+async def main() -> None:
+    async with AsyncFrontal() as client:
+        result = await client.ai.generate_text(
+            {"model": "frontal-ai-fast", "prompt": "Say hello."}
+        )
+        print(result.text)
+
+
+asyncio.run(main())
+```
+
+## Service methods
+
+Clients expose `ai`, `agents`, `workflows`, `audit`, `auth`, `billing`, `blob`,
+`connectors`, `data`, `governance`, `lineage`, `observability`, `ontology`,
+`pipelines`, `sandbox`, `schedules`, and `webhooks`. The first three also
+provide high-level helpers and validated builders. For example, create an agent
+with `client.agents.define(name).trigger(event).can_read(entity).create()` or
+define a workflow with `client.workflows.define(name).manual().task(...).create()`.
+Then use the returned identifier with `client.agents.use(id)` or
+`client.workflows.use(id)` to message, inspect, trigger, or poll runs.
+
+Raw operations use method names that include the HTTP verb and route. Path
+parameters are named `param_1`, `param_2`, and so on in route order. Pass query
+parameters as `query=`, JSON request values as `body=`, multipart uploads as
+`parts=`, and raw request bodies as `data=` plus `content_type=`. Most raw
+operations return JSON values because the OpenAPI snapshot does not define a
+specific response schema for each operation. See [API resources](../docs/RESOURCES.md)
+for details and [examples](./README.md) for runnable scripts.
+
+Sync streams use `for`; async streams use `async for`. AI `stream_text()` yields
+typed text and lifecycle parts. Agent `watch(run_id)` yields raw
+`ServerEvent` values. Long-running agent runs and workflow executions can be
+observed with their accessors' `wait_for_completion()` methods.

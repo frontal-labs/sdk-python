@@ -25,13 +25,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Run one SDK command and print its JSON result."""
     args = build_parser().parse_args(argv)
     try:
-        client = Frontal.from_env()
-        if args.command == "health":
-            result = client.ai.get_health()
-        elif args.command == "agents":
-            result = client.agents.get_agents()
-        else:
-            result = client.agents.get_agents_by_param_1(args.agent_id)
+        with Frontal.from_env() as client:
+            if args.command == "health":
+                result = client.ai.health()
+            elif args.command == "agents":
+                result = client.agents.get_agents()
+            else:
+                result = client.agents.get_agents_by_param_1(args.agent_id)
     except FrontalError as error:
         print(f"Frontal API request failed: {error}", file=sys.stderr)
         return 1

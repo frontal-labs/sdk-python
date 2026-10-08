@@ -50,13 +50,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 
     try:
-        client = Frontal.from_env()
+        with Frontal.from_env() as client:
+            with args.input.open(encoding="utf-8") as input_file:
+                failures = process_agent_ids(
+                    input_file, output=sys.stdout, client=client
+                )
     except ValueError as error:
         logger.error("client configuration failed: %s", error)
         return 2
-
-    with args.input.open(encoding="utf-8") as input_file:
-        failures = process_agent_ids(input_file, output=sys.stdout, client=client)
     return 1 if failures else 0
 
 

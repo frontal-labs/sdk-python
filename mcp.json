@@ -13,34 +13,6 @@
       "title": "PULL REQUEST TEMPLATE"
     },
     {
-      "path": ".venv/lib/python3.12/site-packages/frontal-1.0.0.dist-info/licenses/LICENSE.md",
-      "title": "LICENSE"
-    },
-    {
-      "path": ".venv/lib/python3.12/site-packages/httpcore-1.0.9.dist-info/licenses/LICENSE.md",
-      "title": "LICENSE"
-    },
-    {
-      "path": ".venv/lib/python3.12/site-packages/httpx-0.28.1.dist-info/licenses/LICENSE.md",
-      "title": "LICENSE"
-    },
-    {
-      "path": ".venv/lib/python3.12/site-packages/idna-3.20.dist-info/licenses/LICENSE.md",
-      "title": "LICENSE"
-    },
-    {
-      "path": ".venv/lib/python3.12/site-packages/mypy/typeshed/stdlib/_typeshed/README.md",
-      "title": "README"
-    },
-    {
-      "path": ".venv/lib/python3.12/site-packages/respx-0.23.1.dist-info/LICENSE.md",
-      "title": "LICENSE"
-    },
-    {
-      "path": ".venv/lib/python3.12/site-packages/towncrier/templates/default.md",
-      "title": "default"
-    },
-    {
       "path": "AGENTS.md",
       "title": "AGENTS"
     },

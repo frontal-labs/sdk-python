@@ -23,10 +23,20 @@ service resources; their transport result types make synchronous calls return
 JSON and asynchronous calls return awaitables. Event streams are synchronous
 iterators or asynchronous iterators as appropriate.
 
-`core/http.py` handles bearer authentication, `FRONTAL_ENV`, request IDs,
-bounded retries for GET requests, Pydantic JSON validation, structured errors,
-multipart uploads, raw bytes, and server-sent events. `core/pagination.py` and
-`core/polling.py` provide sync and async cursor iteration and polling helpers.
+`core/config.py` resolves explicit constructor settings and the
+`FRONTAL_API_KEY`, `FRONTAL_API_URL`, `FRONTAL_ENV`, and `FRONTAL_DEBUG`
+environment variables. `core/http.py` handles bearer authentication,
+request IDs, timeouts, bounded retries with backoff, Pydantic JSON validation,
+structured errors, multipart uploads, raw bytes, and server-sent events. Safe
+GET requests are retryable. Stream retries are limited to the period before
+the first event is delivered, so an already-consumed stream is never replayed.
+`core/pagination.py` and `core/polling.py` provide sync and async cursor
+iteration and polling helpers.
+
+The clients default to `https://api.frontal.dev/v1`, a 30 second timeout, and
+three transport retries. Pass `base_url`, `timeout`, `max_retries`,
+`environment`, or `debug` to override those defaults. Both clients are context
+managers and close their HTTPX connection pools on exit.
 
 ## Request flow
 

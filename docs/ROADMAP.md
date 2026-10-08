@@ -6,5 +6,5 @@
 - [x] Generate typed resource methods for all endpoint inventory operations.
 - [ ] Add operation-specific request and response models when complete API schemas are available.
 - [x] Add contract conformance checks and local HTTP integration tests.
-- [ ] Add executable examples for common resource workflows.
+- [x] Add offline runnable examples for sync and async AI, agent definitions, and workflows.
 - [ ] Configure protected PyPI releases.
