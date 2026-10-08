@@ -2,7 +2,7 @@
 
 ![Frontal Banner](./banner.png)
 
-**Frontal client library for Python.**
+**Frontal Python SDK library.**
 
 The Python SDK provides a unified `Frontal` client with typed resource methods for every operation in the committed endpoint inventory. The shared transport handles timeouts, safe GET retries, structured API errors, JSON, multipart uploads, raw responses, and server-sent events. Public APIs are typed and the distribution includes a `py.typed` marker for downstream type checkers.
 
