@@ -622,6 +622,104 @@ def test_agent_builder_validates_and_sends_defaults(
     client.close()
 
 
+def test_agent_configure_json_and_approval_predicate(
+    respx_mock: respx.Router,
+) -> None:
+    respx_mock.post(f"{API_URL}/agents").mock(
+        return_value=httpx.Response(201, json={"id": "agent_approval"})
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+    builder = client.agents.define(
+        "approval-agent",
+        {"description": "Classify tickets", "triggers": "ticket.created"},
+    )
+
+    definition = builder.to_json()
+    accessor = client.agents.use(
+        "agent_approval", approve_when=lambda state: state.get("risk") == "high"
+    )
+
+    assert definition["description"] == "Classify tickets"
+    assert definition["triggers"] == [{"event": "ticket.created"}]
+    assert accessor.requires_approval({"risk": "high"})
+    assert not accessor.requires_approval({"risk": "low"})
+    client.close()
+
+
+def test_sync_ai_legacy_tool_registry_validates_input() -> None:
+    client = Frontal("frt_local_key", max_retries=0)
+    registered = client.ai.define_tool(
+        "double",
+        description="Double an integer",
+        parameters=ToolInput,
+        execute=lambda value: value.value * 2,
+    )
+    client.ai.register_tool(registered)
+
+    assert client.ai.get_tools() == [registered]
+    assert client.ai.execute_tool("double", {"value": "4"}) == 8
+    with pytest.raises(ValueError, match="Tool not found"):
+        client.ai.execute_tool("missing", {})
+    client.close()
+
+
+@pytest.mark.anyio
+async def test_async_ai_legacy_tool_registry_awaits_result() -> None:
+    async with AsyncFrontal("frt_local_key", max_retries=0) as client:
+
+        async def double(value: ToolInput) -> int:
+            return value.value * 2
+
+        registered = client.ai.define_tool(
+            "double",
+            description="Double an integer",
+            parameters=ToolInput,
+            execute=double,
+        )
+        client.ai.register_tool(registered)
+
+        assert await client.ai.execute_tool("double", {"value": 5}) == 10
+
+
+def test_sync_agent_wait_for_completion_polls_until_terminal(
+    respx_mock: respx.Router,
+) -> None:
+    route = respx_mock.get(f"{API_URL}/agents/runs/run_1").mock(
+        side_effect=[
+            httpx.Response(200, json={"status": "running"}),
+            httpx.Response(200, json={"status": "completed"}),
+        ]
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+
+    result = client.agents.use("agent_1").wait_for_completion(
+        "run_1", interval=0.001, timeout=1
+    )
+
+    assert result == {"status": "completed"}
+    assert route.call_count == 2
+    client.close()
+
+
+@pytest.mark.anyio
+async def test_async_agent_wait_for_completion_polls_without_sync_transport(
+    respx_mock: respx.Router,
+) -> None:
+    route = respx_mock.get(f"{API_URL}/agents/runs/run_2").mock(
+        side_effect=[
+            httpx.Response(200, json={"status": "running"}),
+            httpx.Response(200, json={"status": "failed"}),
+        ]
+    )
+    async with AsyncFrontal("frt_local_key", max_retries=0) as client:
+        result = await client.agents.use("agent_1").wait_for_completion(
+            "run_2", interval=0.001, timeout=1
+        )
+
+    assert result == {"status": "failed"}
+    assert route.call_count == 2
+
+
 def test_workflow_builder_creates_base_and_version(
     respx_mock: respx.Router,
 ) -> None:

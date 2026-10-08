@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Generic, cast
+import inspect
+import time
+from collections.abc import Awaitable, Callable, Mapping
+from math import isfinite
+from typing import Any, Generic, cast
 
+import anyio
+
+from frontal_sdk.core.errors import TimeoutError as FrontalTimeoutError
 from frontal_sdk.core.operation import Operation
 from frontal_sdk.models import (
     AgentDefinition,
     AgentRateLimit,
     AgentScope,
+    AgentTrigger,
     ConfidenceConfig,
     JSONValue,
     MemoryConfig,
@@ -174,16 +181,25 @@ class Agents(
         )
 
     def define(
-        self, name: str
+        self,
+        name: str,
+        options: AgentDefinition | Mapping[str, JSONValue] | None = None,
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
         """Start a fluent agent definition; call ``create()`` to send it."""
-        return AgentBuilder(self, name)
+        builder = AgentBuilder(self, name)
+        if options is not None:
+            builder.configure(options)
+        return builder
 
     def use(
-        self, agent_id: str
+        self,
+        agent_id: str,
+        *,
+        approve_when: Callable[[JSONValue], bool] | None = None,
+        approvers: list[str] | None = None,
     ) -> AgentAccessor[JSONResultT, BytesResultT, StreamResultT]:
         """Create an accessor for one agent and its runs."""
-        return AgentAccessor(self, agent_id)
+        return AgentAccessor(self, agent_id, approve_when, approvers)
 
     def list(
         self,
@@ -238,6 +254,59 @@ class AgentBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
         self._confidence = ConfidenceConfig()
         self._memory = MemoryConfig()
         self._retry = RetryConfig()
+
+    def configure(
+        self, definition: AgentDefinition | Mapping[str, JSONValue]
+    ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Apply request fields from a Pydantic model or mapping."""
+        if isinstance(definition, AgentDefinition):
+            values = definition.model_dump(
+                mode="json", by_alias=True, exclude_none=True
+            )
+        else:
+            values = dict(definition)
+        name = values.get("name")
+        if isinstance(name, str):
+            self._values["name"] = name
+        description = values.get("description")
+        if isinstance(description, str):
+            self.description(description)
+        trigger_values = values.get("triggers")
+        if isinstance(trigger_values, (str, list)):
+            raw_triggers: list[object] = (
+                [trigger_values]
+                if isinstance(trigger_values, str)
+                else cast(list[object], trigger_values)
+            )
+            for item in raw_triggers:
+                trigger = AgentTrigger.model_validate(
+                    {"event": item} if isinstance(item, str) else cast(Any, item)
+                )
+                event_filter = (
+                    trigger.filter if isinstance(trigger.filter, Mapping) else None
+                )
+                self.trigger(
+                    trigger.event,
+                    cast(Mapping[str, JSONValue] | None, event_filter),
+                )
+        tags = values.get("tags")
+        if isinstance(tags, list):
+            self.tags(*[tag for tag in tags if isinstance(tag, str)])
+        if "scope" in values:
+            self.scope(cast(Mapping[str, JSONValue], values["scope"]))
+        if "confidence" in values:
+            self.confidence(cast(Mapping[str, JSONValue], values["confidence"]))
+        if "memory" in values:
+            self.memory(cast(Mapping[str, JSONValue], values["memory"]))
+        if "retry" in values:
+            self.retry(cast(Mapping[str, JSONValue], values["retry"]))
+        timeout = values.get("timeout")
+        if isinstance(timeout, str):
+            self.timeout(timeout)
+        rate_limit = values.get("rateLimit")
+        if isinstance(rate_limit, Mapping):
+            self.rate_limit(cast(Mapping[str, JSONValue], rate_limit))
+        return self
 
     def description(
         self, text: str
@@ -365,6 +434,13 @@ class AgentBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
         }
         return AgentDefinition.model_validate(values)
 
+    def to_json(self) -> dict[str, JSONValue]:
+        """Return a JSON-ready, validated agent definition."""
+        return cast(
+            dict[str, JSONValue],
+            self.to_model().model_dump(mode="json", by_alias=True, exclude_none=True),
+        )
+
     def create(self) -> JSONResultT:
         """Validate and create the agent on the configured client."""
         return self._agents.create(self.to_model())
@@ -377,9 +453,17 @@ class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         self,
         agents: Agents[JSONResultT, BytesResultT, StreamResultT],
         agent_id: str,
+        approve_when: Callable[[JSONValue], bool] | None = None,
+        approvers: list[str] | None = None,
     ) -> None:
         self._agents = agents
         self.id = agent_id
+        self._approve_when = approve_when
+        self.approvers = list(approvers or [])
+
+    def requires_approval(self, state: JSONValue) -> bool:
+        """Evaluate the optional local approval predicate for a run state."""
+        return self._approve_when(state) if self._approve_when is not None else False
 
     def get(self) -> JSONResultT:
         return self._agents.get_agents_by_param_1(self.id)
@@ -430,6 +514,46 @@ class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def run(self, run_id: str) -> JSONResultT:
         return self._agents.get_agents_runs_by_param_1(run_id)
 
+    def wait_for_completion(
+        self,
+        run_id: str,
+        *,
+        interval: float = 2.0,
+        timeout: float | None = 300.0,
+    ) -> JSONResultT:
+        """Poll a run until it completes, fails, or is escalated.
+
+        This returns a normal value for ``Frontal`` and an awaitable for
+        ``AsyncFrontal``. The async client never blocks the event loop.
+        """
+        if not isfinite(interval) or interval <= 0:
+            raise ValueError("interval must be a finite positive number")
+        if timeout is not None and (not isfinite(timeout) or timeout <= 0):
+            raise ValueError("timeout must be a finite positive number")
+        started = time.monotonic()
+        first = self.run(run_id)
+        if inspect.isawaitable(first):
+
+            async def wait_async(initial: Awaitable[JSONValue]) -> JSONValue:
+                current = await initial
+                while not _terminal_run(current):
+                    remaining = _remaining_time(started, timeout)
+                    await anyio.sleep(
+                        interval if remaining is None else min(interval, remaining)
+                    )
+                    next_result = cast(Awaitable[JSONValue], self.run(run_id))
+                    current = await next_result
+                return current
+
+            return cast(JSONResultT, wait_async(cast(Awaitable[JSONValue], first)))
+
+        current = cast(JSONValue, first)
+        while not _terminal_run(current):
+            remaining = _remaining_time(started, timeout)
+            time.sleep(interval if remaining is None else min(interval, remaining))
+            current = cast(JSONValue, self.run(run_id))
+        return cast(JSONResultT, current)
+
     def conversation(self, run_id: str) -> JSONResultT:
         return self._agents.get_agents_runs_by_param_1_conversation(run_id)
 
@@ -440,6 +564,27 @@ class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def watch(self, run_id: str) -> StreamResultT:
         """Watch a run as a sync iterator or async iterator of server events."""
         return self._agents.stream_agents_runs_by_param_1_stream(run_id)
+
+
+def _terminal_run(value: JSONValue) -> bool:
+    if isinstance(value, dict):
+        execution = value.get("execution", value)
+        if isinstance(execution, dict):
+            return str(execution.get("status", "")).lower() in {
+                "completed",
+                "failed",
+                "escalated",
+            }
+    return False
+
+
+def _remaining_time(started: float, timeout: float | None) -> float | None:
+    if timeout is None:
+        return None
+    remaining = timeout - (time.monotonic() - started)
+    if remaining <= 0:
+        raise FrontalTimeoutError("Timed out waiting for agent run completion")
+    return remaining
 
 
 __all__ = ["AgentAccessor", "AgentBuilder", "Agents"]

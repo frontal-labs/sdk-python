@@ -22,8 +22,11 @@ Set `FRONTAL_API_KEY`, then make the first request:
 
 ```python
 from frontal_sdk import Frontal
+
 with Frontal() as client:
-    result = client.ai.generate_text({"model": "frontal-ai-fast", "prompt": "Say hello."})
+    result = client.ai.generate_text(
+        {"model": "frontal-ai-fast", "prompt": "Say hello."}
+    )
     print(result.text)
 ```
 
@@ -32,9 +35,15 @@ The async client exposes the same services and operation methods:
 ```python
 import asyncio
 from frontal_sdk import AsyncFrontal
+
+
 async def main():
     async with AsyncFrontal() as client:
-        return await client.ai.generate_text({"model": "frontal-ai-fast", "prompt": "Say hello."})
+        return await client.ai.generate_text(
+            {"model": "frontal-ai-fast", "prompt": "Say hello."}
+        )
+
+
 print(asyncio.run(main()))
 ```
 
