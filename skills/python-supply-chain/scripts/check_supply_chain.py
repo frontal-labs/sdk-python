@@ -33,6 +33,7 @@ import sys
 from pathlib import Path
 
 results: list[tuple[str, str, str]] = []  # (level, check, detail)
+GITHUB_DIR = ".github"
 
 
 def report(level: str, check: str, detail: str) -> None:
@@ -47,7 +48,7 @@ def read(path: Path) -> str:
 
 
 def workflow_texts(root: Path) -> dict[str, str]:
-    wf_dir = root / ".github" / "workflows"
+    wf_dir = root / GITHUB_DIR / "workflows"
     if not wf_dir.is_dir():
         return {}
     return {
@@ -60,7 +61,7 @@ def workflow_texts(root: Path) -> dict[str, str]:
 def check_dependabot(root: Path) -> None:
     cfg = None
     for name in ("dependabot.yml", "dependabot.yaml"):
-        candidate = root / ".github" / name
+        candidate = root / GITHUB_DIR / name
         if candidate.is_file():
             cfg = candidate
             break
@@ -150,7 +151,7 @@ def check_codeowners(root: Path) -> None:
                 for ln in text.splitlines()
                 if ln.strip() and not ln.lstrip().startswith("#") and ln.split()
             ]
-            if any(r.startswith((".github", "/.github")) for r in rules):
+            if any(r.startswith((GITHUB_DIR, f"/{GITHUB_DIR}")) for r in rules):
                 report("PASS", "codeowners", f"{rel} present and covers .github/")
             else:
                 report(
@@ -175,9 +176,7 @@ def check_codeowners(root: Path) -> None:
     )
 
 
-def check_workflows(root: Path) -> None:
-    flows = workflow_texts(root)
-    joined = "\n".join(flows.values())
+def check_workflow_presence(joined: str) -> None:
     if "codeql-action" in joined:
         report("PASS", "codeql", "CodeQL workflow present")
     else:
@@ -212,6 +211,9 @@ def check_workflows(root: Path) -> None:
             "sbom-provenance",
             "no SBOM/attestation step in workflows (optional; relevant at release)",
         )
+
+
+def unpinned_workflow_actions(flows: dict[str, str]) -> list[str]:
     unpinned = []
     for name, text in flows.items():
         for m in re.finditer(
@@ -222,6 +224,10 @@ def check_workflows(root: Path) -> None:
                 continue
             if not re.fullmatch(r"[0-9a-f]{40}", ref):
                 unpinned.append(f"{name}:{action}@{ref}")
+    return unpinned
+
+
+def report_unpinned_actions(unpinned: list[str]) -> None:
     if unpinned:
         report(
             "NOTE",
@@ -229,6 +235,12 @@ def check_workflows(root: Path) -> None:
             f"{len(unpinned)} action ref(s) not pinned to a 40-char SHA "
             f"(e.g. {unpinned[0]}) — pinning policy is python-ci territory",
         )
+
+
+def check_workflows(root: Path) -> None:
+    flows = workflow_texts(root)
+    check_workflow_presence("\n".join(flows.values()))
+    report_unpinned_actions(unpinned_workflow_actions(flows))
 
 
 def check_misc(root: Path) -> None:
@@ -276,26 +288,15 @@ def gh_json(args: list[str], cwd: Path | None = None) -> tuple[int, dict | list 
         return 0, {}
 
 
-def check_github(root: Path) -> None:
-    if shutil.which("gh") is None:
-        print(
-            "ERROR github-checks: gh CLI not found on PATH (needed for --github)",
-            file=sys.stderr,
-        )
-        raise SystemExit(2)
-    rc, view = gh_json(
-        ["repo", "view", "--json", "nameWithOwner"], cwd=root
-    )  # the audited root, not the shell cwd
-    if rc != 0 or not isinstance(view, dict) or "nameWithOwner" not in view:
-        report(
-            "WARN",
-            "github-repo",
-            "could not resolve the GitHub repo via `gh repo view` "
-            "(not a GitHub remote, or gh unauthenticated) — skipping API checks",
-        )
-        return
-    repo = view["nameWithOwner"]
-    rc, data = gh_json(["api", f"repos/{repo}"])
+def github_repo_name(root: Path) -> str | None:
+    rc, view = gh_json(["repo", "view", "--json", "nameWithOwner"], cwd=root)
+    if rc == 0 and isinstance(view, dict) and "nameWithOwner" in view:
+        return str(view["nameWithOwner"])
+    return None
+
+
+def check_github_security(repo: str) -> None:
+    _, data = gh_json(["api", f"repos/{repo}"])
     sec = (
         (data or {}).get("security_and_analysis") or {}
         if isinstance(data, dict)
@@ -316,6 +317,9 @@ def check_github(root: Path) -> None:
                 check,
                 f"{key} state unknown (insufficient token scope or licensing)",
             )
+
+
+def check_github_alerts(repo: str) -> None:
     rc, _ = gh_json(["api", f"repos/{repo}/vulnerability-alerts"])
     if rc == 0:
         report("PASS", "gh-dependabot-alerts", "Dependabot alerts enabled")
@@ -326,6 +330,9 @@ def check_github(root: Path) -> None:
             "Dependabot alerts disabled or not visible — enable with "
             f"`gh api -X PUT repos/{repo}/vulnerability-alerts`",
         )
+
+
+def check_github_code_scanning(repo: str) -> None:
     rc, setup = gh_json(["api", f"repos/{repo}/code-scanning/default-setup"])
     if rc == 0 and isinstance(setup, dict) and setup.get("state") == "configured":
         report("PASS", "gh-codeql-default", "code scanning default setup configured")
@@ -342,6 +349,27 @@ def check_github(root: Path) -> None:
             "gh-codeql-default",
             "could not query code-scanning setup (licensing/permissions)",
         )
+
+
+def check_github(root: Path) -> None:
+    if shutil.which("gh") is None:
+        print(
+            "ERROR github-checks: gh CLI not found on PATH (needed for --github)",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+    repo = github_repo_name(root)
+    if repo is None:
+        report(
+            "WARN",
+            "github-repo",
+            "could not resolve the GitHub repo via `gh repo view` "
+            "(not a GitHub remote, or gh unauthenticated) — skipping API checks",
+        )
+        return
+    check_github_security(repo)
+    check_github_alerts(repo)
+    check_github_code_scanning(repo)
 
 
 def main() -> int:

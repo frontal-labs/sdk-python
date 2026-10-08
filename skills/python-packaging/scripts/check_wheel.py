@@ -97,19 +97,7 @@ def wheel_top_levels(names: list[str]) -> list[str]:
     return sorted(tops)
 
 
-def check_wheel(path: Path, expected: list[str]) -> None:
-    label = path.name
-    try:
-        with zipfile.ZipFile(path) as zf:
-            bad = zf.testzip()
-            if bad is not None:
-                err(label, f"corrupt zip member {bad!r}")
-                return
-            names = zf.namelist()
-    except zipfile.BadZipFile as exc:
-        err(label, f"not a valid zip/wheel: {exc}")
-        return
-
+def check_dist_info(label: str, names: list[str]) -> None:
     dist_infos = sorted(
         {n.split("/", 1)[0] for n in names if n.split("/", 1)[0].endswith(".dist-info")}
     )
@@ -127,6 +115,8 @@ def check_wheel(path: Path, expected: list[str]) -> None:
                     f"missing {di}/{required} — wheel is malformed and pip may reject it",
                 )
 
+
+def check_top_levels(label: str, names: list[str], expected: list[str]) -> None:
     tops = wheel_top_levels(names)
     infos.append(
         f"INFO {label}: top-level entries: {', '.join(tops) if tops else '(none)'}"
@@ -146,6 +136,23 @@ def check_wheel(path: Path, expected: list[str]) -> None:
     for exp in expected:
         if exp not in names:
             err(label, f"expected file {exp!r} not found in wheel")
+
+
+def check_wheel(path: Path, expected: list[str]) -> None:
+    label = path.name
+    try:
+        with zipfile.ZipFile(path) as zf:
+            bad = zf.testzip()
+            if bad is not None:
+                err(label, f"corrupt zip member {bad!r}")
+                return
+            names = zf.namelist()
+    except zipfile.BadZipFile as exc:
+        err(label, f"not a valid zip/wheel: {exc}")
+        return
+
+    check_dist_info(label, names)
+    check_top_levels(label, names, expected)
 
 
 def check_sdist(path: Path) -> None:

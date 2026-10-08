@@ -84,6 +84,132 @@ def addopts_as_string(value: object) -> str:
     return ""
 
 
+def pytest_table_flags(
+    pp_data: dict, pp_text: str, tool: dict
+) -> tuple[bool, bool, bool]:
+    pytest_table = tool.get("pytest")
+    if tomllib is not None and pp_text:
+        has_ini = isinstance(pytest_table, dict) and "ini_options" in pytest_table
+        has_native = isinstance(pytest_table, dict) and any(
+            key != "ini_options" for key in pytest_table
+        )
+        has_coverage = "coverage" in tool
+        return has_ini, has_native, has_coverage
+    return (
+        has_exact_section(pp_text, "tool.pytest.ini_options"),
+        has_exact_section(pp_text, "tool.pytest"),
+        has_section(pp_text, "tool.coverage"),
+    )
+
+
+def check_config_sources(
+    root: Path,
+    pyproject: Path,
+    pytest_ini: Path,
+    toml_configs: list[Path],
+    setup_cfg: Path,
+    tox_ini: Path,
+    has_ini: bool,
+    has_native: bool,
+) -> None:
+    has_pytest = has_ini or has_native
+    setup_cfg_text = read_text(setup_cfg) if setup_cfg.is_file() else ""
+    tox_ini_text = read_text(tox_ini) if tox_ini.is_file() else ""
+    setup_has_pytest = bool(setup_cfg_text) and has_exact_section(
+        setup_cfg_text, "tool:pytest"
+    )
+    tox_has_pytest = bool(tox_ini_text) and has_exact_section(tox_ini_text, "pytest")
+
+    if pytest_ini.is_file() and has_pytest:
+        err(
+            str(pytest_ini),
+            "pytest.ini exists alongside pytest config in pyproject.toml — pytest.ini silently wins; merge into one source and delete the other",
+        )
+    if has_pytest or pytest_ini.is_file():
+        for cfg in toml_configs:
+            err(
+                str(cfg),
+                f"{cfg.name} exists alongside other pytest config — it takes precedence over every other file, even when empty; keep exactly one source",
+            )
+    if setup_has_pytest and has_pytest:
+        warn(
+            str(setup_cfg),
+            "[tool:pytest] in setup.cfg alongside pytest config in pyproject.toml — only one source is read; merge and delete the loser",
+        )
+    if tox_has_pytest and has_pytest:
+        warn(
+            str(tox_ini),
+            "[pytest] section in tox.ini alongside pytest config in pyproject.toml — only one source is read; merge and delete the loser",
+        )
+    if has_native and has_ini:
+        err(
+            str(pyproject),
+            "both [tool.pytest] and [tool.pytest.ini_options] present — pytest reads one table; merge into the one your pytest major supports",
+        )
+    elif has_native:
+        info(
+            str(pyproject),
+            "[tool.pytest] native table (pytest >= 9.0) — SILENTLY ignored on older pytest; confirm with `pytest --version`, or use [tool.pytest.ini_options] if < 9 must work",
+        )
+    sources_exist = has_pytest or pytest_ini.is_file() or toml_configs
+    if not (sources_exist or setup_has_pytest or tox_has_pytest):
+        warn(
+            str(root),
+            "no pytest configuration found in pyproject.toml, pytest.toml, pytest.ini, setup.cfg, or tox.ini — add [tool.pytest.ini_options] (or [tool.pytest] on pytest >= 9) with testpaths and strict flags",
+        )
+
+
+def check_coverage_config(
+    pyproject: Path,
+    coveragerc: Path,
+    tool: dict,
+    has_coverage: bool,
+    pytest_table: object,
+) -> None:
+    if coveragerc.is_file() and has_coverage:
+        err(
+            str(coveragerc),
+            ".coveragerc exists alongside [tool.coverage.*] in pyproject.toml — .coveragerc silently wins; keep exactly one source",
+        )
+    if (
+        tomllib is None
+        or not has_coverage
+        or not isinstance(tool.get("coverage"), dict)
+    ):
+        return
+
+    coverage = tool["coverage"]
+    run = coverage.get("run", {}) if isinstance(coverage.get("run", {}), dict) else {}
+    report = (
+        coverage.get("report", {})
+        if isinstance(coverage.get("report", {}), dict)
+        else {}
+    )
+    if run.get("branch") is not True:
+        warn(
+            str(pyproject),
+            "[tool.coverage.run] branch is not true — line-only coverage overstates; set branch = true",
+        )
+    if run.get("parallel") is True and run.get("relative_files") is not True:
+        warn(
+            str(pyproject),
+            "[tool.coverage.run] parallel = true without relative_files = true — combining data across paths/runners will mismatch files",
+        )
+
+    ini = pytest_table.get("ini_options", {}) if isinstance(pytest_table, dict) else {}
+    addopts = addopts_as_string(ini.get("addopts", "")) if isinstance(ini, dict) else ""
+    if "fail_under" not in report and "--cov-fail-under" not in addopts:
+        warn(
+            str(pyproject),
+            "no coverage gate found — set fail_under under [tool.coverage.report] (80-90), then prove it trips with a non-zero exit",
+        )
+    if "--cov" in addopts.split() or "--cov=" in addopts:
+        info(
+            str(pyproject),
+            "--cov baked into pytest addopts — every run (incl. single-test debugging) pays coverage overhead; --no-cov disables per run",
+        )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
@@ -100,8 +226,6 @@ def main() -> int:
 
     pyproject = root / "pyproject.toml"
     pytest_ini = root / "pytest.ini"
-    # pytest >= 9: pytest.toml / .pytest.toml outrank everything, even when empty;
-    # .pytest.ini is the hidden twin of pytest.ini.
     toml_configs = [
         p
         for p in (root / "pytest.toml", root / ".pytest.toml", root / ".pytest.ini")
@@ -110,7 +234,6 @@ def main() -> int:
     setup_cfg = root / "setup.cfg"
     tox_ini = root / "tox.ini"
     coveragerc = root / ".coveragerc"
-
     pp_text = read_text(pyproject) if pyproject.is_file() else ""
     pp_data: dict = {}
     if pp_text and tomllib is not None:
@@ -124,128 +247,20 @@ def main() -> int:
             "Python < 3.11 (no tomllib) — key-level checks skipped, section-presence checks only",
         )
 
-    tool = pp_data.get("tool", {}) if isinstance(pp_data.get("tool", {}), dict) else {}
-    pp_pytest_tbl = tool.get("pytest")
-    if tomllib is not None and pp_text:
-        pp_has_ini_options = (
-            isinstance(pp_pytest_tbl, dict) and "ini_options" in pp_pytest_tbl
-        )
-        pp_has_native_pytest = isinstance(pp_pytest_tbl, dict) and any(
-            k != "ini_options" for k in pp_pytest_tbl
-        )
-        pp_has_coverage = "coverage" in tool
-    else:
-        pp_has_ini_options = has_exact_section(pp_text, "tool.pytest.ini_options")
-        pp_has_native_pytest = has_exact_section(pp_text, "tool.pytest")
-        pp_has_coverage = has_section(pp_text, "tool.coverage")
-
-    pp_has_pytest = pp_has_ini_options or pp_has_native_pytest
-
-    # --- pytest config source conflicts (pytest reads the FIRST match only) ---
-    setup_cfg_text = read_text(setup_cfg) if setup_cfg.is_file() else ""
-    tox_ini_text = read_text(tox_ini) if tox_ini.is_file() else ""
-    setup_cfg_has_pytest = bool(setup_cfg_text) and has_exact_section(
-        setup_cfg_text, "tool:pytest"
+    raw_tool = pp_data.get("tool", {})
+    tool = raw_tool if isinstance(raw_tool, dict) else {}
+    has_ini, has_native, has_coverage = pytest_table_flags(pp_data, pp_text, tool)
+    check_config_sources(
+        root,
+        pyproject,
+        pytest_ini,
+        toml_configs,
+        setup_cfg,
+        tox_ini,
+        has_ini,
+        has_native,
     )
-    tox_ini_has_pytest = bool(tox_ini_text) and has_exact_section(
-        tox_ini_text, "pytest"
-    )
-
-    if pytest_ini.is_file() and pp_has_pytest:
-        err(
-            str(pytest_ini),
-            "pytest.ini exists alongside pytest config in pyproject.toml — pytest.ini silently wins; merge into one source and delete the other",
-        )
-    for cfg in toml_configs:
-        if pp_has_pytest or pytest_ini.is_file():
-            err(
-                str(cfg),
-                f"{cfg.name} exists alongside other pytest config — it takes precedence over every other file, even when empty; keep exactly one source",
-            )
-    if setup_cfg_has_pytest and pp_has_pytest:
-        warn(
-            str(setup_cfg),
-            "[tool:pytest] in setup.cfg alongside pytest config in pyproject.toml — only one source is read; merge and delete the loser",
-        )
-    if tox_ini_has_pytest and pp_has_pytest:
-        warn(
-            str(tox_ini),
-            "[pytest] section in tox.ini alongside pytest config in pyproject.toml — only one source is read; merge and delete the loser",
-        )
-
-    # --- the two pyproject tables ---
-    if pp_has_native_pytest and pp_has_ini_options:
-        err(
-            str(pyproject),
-            "both [tool.pytest] and [tool.pytest.ini_options] present — pytest reads one table; merge into the one your pytest major supports",
-        )
-    elif pp_has_native_pytest:
-        info(
-            str(pyproject),
-            "[tool.pytest] native table (pytest >= 9.0) — SILENTLY ignored on older pytest; confirm with `pytest --version`, or use [tool.pytest.ini_options] if < 9 must work",
-        )
-
-    if not (
-        pp_has_pytest
-        or pytest_ini.is_file()
-        or toml_configs
-        or setup_cfg_has_pytest
-        or tox_ini_has_pytest
-    ):
-        warn(
-            str(root),
-            "no pytest configuration found in pyproject.toml, pytest.toml, pytest.ini, setup.cfg, or tox.ini — add [tool.pytest.ini_options] (or [tool.pytest] on pytest >= 9) with testpaths and strict flags",
-        )
-
-    # --- coverage config source conflicts (.coveragerc wins) ---
-    if coveragerc.is_file() and pp_has_coverage:
-        err(
-            str(coveragerc),
-            ".coveragerc exists alongside [tool.coverage.*] in pyproject.toml — .coveragerc silently wins; keep exactly one source",
-        )
-
-    # --- key-level coverage checks (TOML-aware only) ---
-    if (
-        tomllib is not None
-        and pp_has_coverage
-        and isinstance(tool.get("coverage"), dict)
-    ):
-        cov = tool["coverage"]
-        run = cov.get("run", {}) if isinstance(cov.get("run", {}), dict) else {}
-        report = (
-            cov.get("report", {}) if isinstance(cov.get("report", {}), dict) else {}
-        )
-
-        if run.get("branch") is not True:
-            warn(
-                str(pyproject),
-                "[tool.coverage.run] branch is not true — line-only coverage overstates; set branch = true",
-            )
-        if run.get("parallel") is True and run.get("relative_files") is not True:
-            warn(
-                str(pyproject),
-                "[tool.coverage.run] parallel = true without relative_files = true — combining data across paths/runners will mismatch files",
-            )
-
-        ini = (
-            pp_pytest_tbl.get("ini_options", {})
-            if isinstance(pp_pytest_tbl, dict)
-            else {}
-        )
-        addopts = (
-            addopts_as_string(ini.get("addopts", "")) if isinstance(ini, dict) else ""
-        )
-        has_gate = "fail_under" in report or "--cov-fail-under" in addopts
-        if not has_gate:
-            warn(
-                str(pyproject),
-                "no coverage gate found — set fail_under under [tool.coverage.report] (80-90), then prove it trips with a non-zero exit",
-            )
-        if "--cov" in addopts.split() or "--cov=" in addopts:
-            info(
-                str(pyproject),
-                "--cov baked into pytest addopts — every run (incl. single-test debugging) pays coverage overhead; --no-cov disables per run",
-            )
+    check_coverage_config(pyproject, coveragerc, tool, has_coverage, tool.get("pytest"))
 
     for line in errors + warnings + infos:
         print(line, file=sys.stderr)
