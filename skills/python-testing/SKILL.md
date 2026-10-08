@@ -173,6 +173,7 @@ uv add --dev hypothesis    # exact version pinned by uv.lock
 ```python
 from hypothesis import given, strategies as st
 
+
 @given(st.text())
 def test_roundtrip(s):
     assert decode(encode(s)) == s
@@ -185,6 +186,7 @@ def test_roundtrip(s):
 
 ```python
 from hypothesis import settings
+
 settings.register_profile("ci", max_examples=1000)
 settings.register_profile("dev", max_examples=25)
 ```

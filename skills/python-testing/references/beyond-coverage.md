@@ -36,28 +36,33 @@ caught mutations found within the first 20 generated inputs
 ```python
 from hypothesis import given, strategies as st
 
+
 @given(st.binary())
-def test_roundtrip(payload):                 # 1. round-trip
+def test_roundtrip(payload):  # 1. round-trip
     assert decode(encode(payload)) == payload
 
+
 @given(st.lists(st.integers()))
-def test_idempotent(xs):                     # 2. idempotence
+def test_idempotent(xs):  # 2. idempotence
     assert normalize(normalize(xs)) == normalize(xs)
 
+
 @given(st.lists(st.integers()))
-def test_invariant(xs):                      # 3. invariants
+def test_invariant(xs):  # 3. invariants
     assert len(sorted(xs)) == len(xs)
 
-@given(st.text())
-def test_oracle(s):                          # 4. oracle: compare to a trusted impl
-    assert fast_parse(s) == reference_parse(s)
 
 @given(st.text())
-def test_expected_exceptions(s):             # 5. "raises cleanly or succeeds"
+def test_oracle(s):  # 4. oracle: compare to a trusted impl
+    assert fast_parse(s) == reference_parse(s)
+
+
+@given(st.text())
+def test_expected_exceptions(s):  # 5. "raises cleanly or succeeds"
     try:
         parse(s)
     except ParseError:
-        pass                                 # defined failure is fine; anything else propagates
+        pass  # defined failure is fine; anything else propagates
 ```
 
 ### Strategy design
@@ -105,6 +110,7 @@ operation *sequences* and checks invariants after each step:
 ```python
 from hypothesis.stateful import RuleBasedStateMachine, rule, invariant
 
+
 class CacheMachine(RuleBasedStateMachine):
     def __init__(self):
         super().__init__()
@@ -119,7 +125,8 @@ class CacheMachine(RuleBasedStateMachine):
     def size_bounded(self):
         assert len(self.cache) <= 3
 
-TestCache = CacheMachine.TestCase   # collected by pytest
+
+TestCache = CacheMachine.TestCase  # collected by pytest
 ```
 
 ## Mutation testing
