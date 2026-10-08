@@ -80,7 +80,7 @@ def warn(where: str, msg: str) -> None:
 
 def _split_code(code: str) -> tuple[str, str]:
     """Split 'ISC001' -> ('ISC', '001'); 'E5' -> ('E', '5')."""
-    m = re.match(r"^([A-Z]+)([0-9]*)$", code)
+    m = re.match(r"^([A-Z]+)(\d*)$", code)
     return (m.group(1), m.group(2)) if m else (code, "")
 
 
@@ -108,6 +108,9 @@ def check_legacy_files(root: Path) -> None:
                 name,
                 "legacy config file present — Ruff never reads it; translate to [tool.ruff*] and delete",
             )
+
+
+def check_legacy_ini_sections(root: Path) -> None:
     for name in ("setup.cfg", "tox.ini"):
         p = root / name
         if p.is_file():
@@ -157,6 +160,7 @@ def check_legacy_dependencies(pyproject: dict) -> None:
 
 def check_legacy_remnants(root: Path, pyproject: dict) -> None:
     check_legacy_files(root)
+    check_legacy_ini_sections(root)
     check_legacy_tables(pyproject)
     check_legacy_dependencies(pyproject)
 

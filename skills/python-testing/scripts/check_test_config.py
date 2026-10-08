@@ -84,9 +84,7 @@ def addopts_as_string(value: object) -> str:
     return ""
 
 
-def pytest_table_flags(
-    pp_data: dict, pp_text: str, tool: dict
-) -> tuple[bool, bool, bool]:
+def pytest_table_flags(pp_text: str, tool: dict) -> tuple[bool, bool, bool]:
     pytest_table = tool.get("pytest")
     if tomllib is not None and pp_text:
         has_ini = isinstance(pytest_table, dict) and "ini_options" in pytest_table
@@ -102,24 +100,15 @@ def pytest_table_flags(
     )
 
 
-def check_config_sources(
-    root: Path,
-    pyproject: Path,
+def check_conflicting_sources(
     pytest_ini: Path,
     toml_configs: list[Path],
     setup_cfg: Path,
     tox_ini: Path,
-    has_ini: bool,
-    has_native: bool,
+    has_pytest: bool,
+    setup_has_pytest: bool,
+    tox_has_pytest: bool,
 ) -> None:
-    has_pytest = has_ini or has_native
-    setup_cfg_text = read_text(setup_cfg) if setup_cfg.is_file() else ""
-    tox_ini_text = read_text(tox_ini) if tox_ini.is_file() else ""
-    setup_has_pytest = bool(setup_cfg_text) and has_exact_section(
-        setup_cfg_text, "tool:pytest"
-    )
-    tox_has_pytest = bool(tox_ini_text) and has_exact_section(tox_ini_text, "pytest")
-
     if pytest_ini.is_file() and has_pytest:
         err(
             str(pytest_ini),
@@ -141,6 +130,11 @@ def check_config_sources(
             str(tox_ini),
             "[pytest] section in tox.ini alongside pytest config in pyproject.toml — only one source is read; merge and delete the loser",
         )
+
+
+def check_pytest_table_compatibility(
+    pyproject: Path, has_ini: bool, has_native: bool
+) -> None:
     if has_native and has_ini:
         err(
             str(pyproject),
@@ -151,12 +145,59 @@ def check_config_sources(
             str(pyproject),
             "[tool.pytest] native table (pytest >= 9.0) — SILENTLY ignored on older pytest; confirm with `pytest --version`, or use [tool.pytest.ini_options] if < 9 must work",
         )
+
+
+def warn_missing_pytest_config(
+    root: Path,
+    has_pytest: bool,
+    pytest_ini: Path,
+    toml_configs: list[Path],
+    setup_has_pytest: bool,
+    tox_has_pytest: bool,
+) -> None:
     sources_exist = has_pytest or pytest_ini.is_file() or toml_configs
     if not (sources_exist or setup_has_pytest or tox_has_pytest):
         warn(
             str(root),
             "no pytest configuration found in pyproject.toml, pytest.toml, pytest.ini, setup.cfg, or tox.ini — add [tool.pytest.ini_options] (or [tool.pytest] on pytest >= 9) with testpaths and strict flags",
         )
+
+
+def check_config_sources(
+    root: Path,
+    pyproject: Path,
+    pytest_ini: Path,
+    toml_configs: list[Path],
+    setup_cfg: Path,
+    tox_ini: Path,
+    has_ini: bool,
+    has_native: bool,
+) -> None:
+    has_pytest = has_ini or has_native
+    setup_cfg_text = read_text(setup_cfg) if setup_cfg.is_file() else ""
+    tox_ini_text = read_text(tox_ini) if tox_ini.is_file() else ""
+    setup_has_pytest = bool(setup_cfg_text) and has_exact_section(
+        setup_cfg_text, "tool:pytest"
+    )
+    tox_has_pytest = bool(tox_ini_text) and has_exact_section(tox_ini_text, "pytest")
+    check_conflicting_sources(
+        pytest_ini,
+        toml_configs,
+        setup_cfg,
+        tox_ini,
+        has_pytest,
+        setup_has_pytest,
+        tox_has_pytest,
+    )
+    check_pytest_table_compatibility(pyproject, has_ini, has_native)
+    warn_missing_pytest_config(
+        root,
+        has_pytest,
+        pytest_ini,
+        toml_configs,
+        setup_has_pytest,
+        tox_has_pytest,
+    )
 
 
 def check_coverage_config(
@@ -249,7 +290,7 @@ def main() -> int:
 
     raw_tool = pp_data.get("tool", {})
     tool = raw_tool if isinstance(raw_tool, dict) else {}
-    has_ini, has_native, has_coverage = pytest_table_flags(pp_data, pp_text, tool)
+    has_ini, has_native, has_coverage = pytest_table_flags(pp_text, tool)
     check_config_sources(
         root,
         pyproject,
