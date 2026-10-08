@@ -6,7 +6,7 @@ import inspect
 import time
 from collections.abc import Awaitable, Callable, Mapping
 from math import isfinite
-from typing import Any, Generic, cast
+from typing import Any, Generic, Optional, cast
 
 import anyio
 
@@ -287,7 +287,7 @@ class AgentBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
                 )
                 self.trigger(
                     trigger.event,
-                    cast(Mapping[str, JSONValue] | None, event_filter),
+                    cast(Optional[Mapping[str, JSONValue]], event_filter),
                 )
         tags = values.get("tags")
         if isinstance(tags, list):
