@@ -1,3 +1,4 @@
+# Cursor context exclusions
 .git/
 .venv/
 __pycache__/
@@ -7,3 +8,14 @@ __pycache__/
 .pyright/
 /build/
 /dist/
+
+# Local secrets and generated caches
+.env
+.env.*
+!.env.example
+!.env.*.example
+.gradle/
+.venv/
+venv/
+__pycache__/
+*.egg-info/
