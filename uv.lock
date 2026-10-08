@@ -153,6 +153,15 @@ wheels = [
 ]
 
 [[package]]
+name = "eval-type-backport"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1c/15/273a4baf8248d6d76220723c3caf039d283774b31a7c46ba686120145b76/eval_type_backport-0.4.0.tar.gz", hash = "sha256:8397d25e6524c2e67b9576bb0636be27dea2192017711220c534ec2de921e9b0", size = 10260, upload-time = "2026-06-02T13:22:06.059Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/50/a7/bb99bf5e6f78736ddb53480f2c3ff3702ffe2196a7c5e1661c03081d398e/eval_type_backport-0.4.0-py3-none-any.whl", hash = "sha256:ad5e2a8db71b6696a56eafb938b0f5a337d3217f256b8e158b469422b4772b20", size = 6432, upload-time = "2026-06-02T13:22:04.827Z" },
+]
+
+[[package]]
 name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -171,6 +180,7 @@ source = { editable = "." }
 dependencies = [
     { name = "anyio", version = "4.12.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "anyio", version = "4.15.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "eval-type-backport", marker = "python_full_version < '3.10'" },
     { name = "httpx" },
     { name = "pydantic", version = "2.13.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pydantic", version = "2.14.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -191,6 +201,7 @@ dev = [
 requires-dist = [
     { name = "anyio", specifier = ">=4.5,<5" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.2" },
+    { name = "eval-type-backport", marker = "python_full_version < '3.10'", specifier = ">=0.2" },
     { name = "httpx", specifier = ">=0.27.2,<1" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.15,<2" },
     { name = "pydantic", specifier = ">=2.10.6,<3" },
