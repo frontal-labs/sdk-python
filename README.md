@@ -2,6 +2,8 @@
 
 ![Frontal Banner](./banner.png)
 
+[![skills.sh](https://skills.sh/b/frontal-labs/sdk-python)](https://skills.sh/frontal-labs/sdk-python)
+
 The `frontal` package provides synchronous and asynchronous Python clients for
 the Frontal API. Services are available on the client as typed attributes such
 as `client.ai`, `client.agents`, and `client.workflows`.
@@ -86,6 +88,14 @@ uv run python scripts/check_contracts.py
 The tests use RESPX at the HTTPX layer and do not need a running API or live
 credentials. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
 [`docs/TESTING.md`](docs/TESTING.md), and [`docs/PUBLISHING.md`](docs/PUBLISHING.md).
+
+## Agent skills
+
+Install this repository's Python-specific agent skills with the [skills CLI](https://skills.sh/docs/cli):
+
+```bash
+npx skills add frontal-labs/sdk-python
+```
 
 ## License
 

@@ -1,0 +1,11 @@
+---
+description: Python SDK code conventions and checks
+globs: **/*.py
+alwaysApply: false
+---
+
+# Python development rules
+
+Support Python 3.9–3.12. Keep the frontal_sdk import package distinct from the frontal distribution. Follow existing uv/Hatchling, HTTPX, Pydantic v2, Ruff, mypy, pytest, anyio, and RESPX patterns. Keep service behavior grounded in the committed contracts.
+
+When implementing behavior changes, add deterministic offline coverage using the repository's existing test tools. Update docs and runnable examples for public API changes. See `AGENTS.md` for project-specific rules and use the applicable skill under `skills/`.

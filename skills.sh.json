@@ -1,0 +1,20 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Python SDK Engineering",
+      "description": "Python client lifecycle, Pydantic models, and contract testing for Frontal.",
+      "skills": [
+        "frontal-sdk",
+        "python-sync-async-clients",
+        "python-pydantic-httpx-contracts",
+        "python-testing",
+        "python-typing",
+        "python-packaging",
+        "python-lint",
+        "python-supply-chain"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Python: Sync development environment",
+      "type": "process",
+      "command": "uv",
+      "args": [
+        "sync",
+        "--extra",
+        "dev"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "Python: Ruff format check",
+      "type": "process",
+      "command": "uv",
+      "args": [
+        "run",
+        "ruff",
+        "format",
+        "--check",
+        "."
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "Python: Ruff lint",
+      "type": "process",
+      "command": "uv",
+      "args": [
+        "run",
+        "ruff",
+        "check",
+        "."
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "Python: Strict mypy",
+      "type": "process",
+      "command": "uv",
+      "args": [
+        "run",
+        "mypy",
+        "--strict"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "Python: Tests",
+      "type": "process",
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "-m",
+        "pytest"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "Python: Build distributions",
+      "type": "process",
+      "command": "uv",
+      "args": [
+        "build"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    },
+    {
+      "label": "Python: Check endpoint contracts",
+      "type": "process",
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "scripts/check_contracts.py"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false
+      }
+    }
+  ]
+}
