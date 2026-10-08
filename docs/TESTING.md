@@ -1,5 +1,17 @@
 # Python testing strategy
 
-Tests live under the repository-level `tests/` directory and are not included in the SDK distribution. The current suite exercises request encoding, authentication, endpoint path handling, retries, structured errors, uploads, raw responses, and event streams against a local HTTP server.
+Tests live under `tests/` and are excluded from the SDK distribution. RESPX
+intercepts HTTPX requests at the transport layer, so the suite needs no running
+API or live credentials. It covers sync and async requests, retries, errors,
+Pydantic body serialization, pagination, polling, uploads, raw responses, and
+sync/async SSE streams.
 
-Run the suite with `python -m pytest`. Keep tests independent of Frontal credentials and avoid live API calls in the default run. Organize test modules around resources or shared core behavior as the suite grows.
+The README Python fences are executed by pytest with a mocked health endpoint.
+Examples have a separate offline smoke test. Run the full suite with:
+
+```bash
+uv sync --extra dev
+uv run python -m pytest
+```
+
+Keep test helpers in `tests/` unless they are intentionally supported SDK APIs.

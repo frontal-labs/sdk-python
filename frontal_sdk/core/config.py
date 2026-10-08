@@ -9,13 +9,15 @@ from types import MappingProxyType
 from urllib.parse import urlsplit
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class ClientConfig:
     api_key: str
     base_url: str = "https://api.frontal.dev/v1"
     timeout: float = 30.0
-    max_retries: int = 2
+    max_retries: int = 3
     headers: Mapping[str, str] = field(default_factory=dict)
+    environment: str = "production"
+    debug: bool = False
 
     def __post_init__(self) -> None:
         parsed = urlsplit(self.base_url)
@@ -37,8 +39,10 @@ class ClientConfig:
             raise ValueError("timeout must be a finite positive number")
         if isinstance(self.max_retries, bool) or not isinstance(self.max_retries, int):
             raise TypeError("max_retries must be an integer")
-        if self.max_retries < 0:
-            raise ValueError("max_retries must be non-negative")
+        if not 0 <= self.max_retries <= 10:
+            raise ValueError("max_retries must be between 0 and 10")
+        if not self.environment.strip():
+            raise ValueError("environment must not be empty")
         for name, value in self.headers.items():
             if not name or any(char in name for char in "\r\n:"):
                 raise ValueError(

@@ -1,1 +1,1 @@
-"""Asyncio starter built with the synchronous Frontal Python SDK."""
+"""Asyncio starter built with the async Frontal Python SDK."""

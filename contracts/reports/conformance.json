@@ -4,5 +4,5 @@
   "status": "implemented",
   "matched": 370,
   "unmatched": 0,
-  "note": "Typed resource methods are generated from contracts/sdk-endpoints.json. Payload models remain JSON-typed where operation schemas are absent."
+  "note": "Hand-written resource methods match contracts/sdk-endpoints.json. Payloads use the validated JSON boundary where operation schemas are absent."
 }

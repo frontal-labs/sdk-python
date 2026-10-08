@@ -1,8 +1,7 @@
 # Enterprise readiness
 
-The Python SDK includes a shared authenticated transport, validated client configuration, structured API errors, bounded GET retries, and typed resource methods generated from the endpoint inventory. Before production release, close the remaining readiness work:
+The Python SDK includes sync and async HTTPX transports, validated client configuration, structured API errors, bounded GET retries, Pydantic boundary models, and methods for the complete endpoint inventory. Remaining release operations are:
 
 - Generate operation-specific request and response models when the API publishes complete schemas.
-- Expand behavior and compatibility coverage across the supported Python versions.
-- Validate release and publishing workflows against the target package registry.
-- Review security controls, supported authentication flows, and service-specific operational guidance.
+- Configure the PyPI trusted publisher for this repository, workflow, and `pypi` environment.
+- Review security controls, supported authentication flows, and service-specific operational guidance during release review.

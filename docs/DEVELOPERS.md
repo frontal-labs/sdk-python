@@ -2,7 +2,7 @@
 
 ## Tooling
 
-Use Python 3.10 or later and the native commands listed in [`README.md`](../README.md). The SDK runtime is written in Python. Contract and documentation maintenance scripts use Python's standard library.
+Use Python 3.9–3.12 and the `uv` commands listed in [`README.md`](../README.md). The SDK runtime is written in Python. Contract and documentation maintenance scripts use Python's standard library.
 
 ## Change placement
 

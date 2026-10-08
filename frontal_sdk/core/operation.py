@@ -1,4 +1,4 @@
-"""Immutable operation descriptors used by generated resource methods."""
+"""Immutable operation descriptors used by service methods."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from re import findall, sub
 from urllib.parse import quote
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class Operation:
     method: str
     path: str

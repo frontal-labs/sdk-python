@@ -1,7 +1,14 @@
 """Shared request boundary types for resource methods."""
 
 from collections.abc import Mapping
-from typing import TypeAlias
+from typing import Union
 
-QueryValue: TypeAlias = str | int | float | bool
-QueryParams: TypeAlias = Mapping[str, QueryValue]
+from pydantic import BaseModel
+
+from frontal_sdk.models.types import JSONValue
+
+QueryValue = Union[str, int, float, bool]
+QueryParams = Mapping[str, QueryValue]
+RequestBody = Union[JSONValue, BaseModel]
+
+__all__ = ["QueryParams", "QueryValue", "RequestBody"]

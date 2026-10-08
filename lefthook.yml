@@ -1,0 +1,14 @@
+pre-commit:
+  parallel: true
+  commands:
+    ruff-format:
+      glob: "*.py"
+      run: uv run ruff format --check {staged_files}
+    ruff-lint:
+      glob: "*.py"
+      run: uv run ruff check {staged_files}
+
+commit-msg:
+  commands:
+    commitlint:
+      run: bun commitlint --config commitlint.config.cjs --edit {1}

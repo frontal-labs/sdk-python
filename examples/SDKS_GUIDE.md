@@ -3,7 +3,7 @@
 Install the SDK from the repository root during development:
 
 ```bash
-python -m pip install -e ".[dev]"
+uv sync --extra dev
 ```
 
 Set `FRONTAL_API_KEY` in the environment, then use the unified client and typed resource methods:

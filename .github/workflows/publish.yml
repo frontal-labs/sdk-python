@@ -1,19 +1,45 @@
-name: PyPI release readiness
+name: Publish to PyPI
+
 on:
-  workflow_dispatch:
+  push:
+    tags: ["v*.*.*"]
+
 permissions:
   contents: read
+
 jobs:
-  readiness:
+  publish:
+    name: Build and publish frontal
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/frontal/
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Set up Python and uv
+        uses: astral-sh/setup-uv@v9
         with:
           python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install locked dependencies
+        run: uv sync --locked --extra dev
+      - name: Check formatting
+        run: uv run ruff format --check .
       - name: Build distributions
-        run: |
-          python -m pip install build
-          python -m build
-      - name: Explain release route
-        run: echo "Configure PyPI trusted publishing before enabling upload."
+        run: uv build
+      - name: Lint
+        run: uv run ruff check .
+      - name: Type check
+        run: uv run mypy --strict
+      - name: Test sync, async, examples, and docs
+        run: uv run python -m pytest
+      - name: Check API contract
+        run: uv run python scripts/check_contracts.py
+      - name: Publish with GitHub OIDC trusted publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

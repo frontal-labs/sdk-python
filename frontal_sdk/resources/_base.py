@@ -1,18 +1,73 @@
-"""Shared operation dispatch for generated resource classes."""
+"""Shared transport protocol for typed resource groups."""
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Generic, Protocol, TypeVar
 
-from frontal_sdk.core.http import HttpClient
 from frontal_sdk.core.operation import Operation
-from frontal_sdk.models import JSONValue, MultipartPart, QueryParams, ServerEvent
+from frontal_sdk.models import MultipartPart, QueryParams, RequestBody
+
+JSONResultT = TypeVar("JSONResultT", covariant=True)
+BytesResultT = TypeVar("BytesResultT", covariant=True)
+StreamResultT = TypeVar("StreamResultT", covariant=True)
 
 
-class APIResource:
-    """Base class for resource groups backed by the shared HTTP client."""
+class HTTPTransport(Protocol[JSONResultT, BytesResultT, StreamResultT]):
+    """Operations shared by synchronous and asynchronous transports."""
 
-    def __init__(self, http: HttpClient) -> None:
+    def request(
+        self,
+        operation: Operation,
+        *,
+        path_params: Sequence[str] = (),
+        query: QueryParams | None = None,
+        body: RequestBody = None,
+    ) -> JSONResultT: ...
+
+    def request_multipart(
+        self,
+        operation: Operation,
+        parts: Sequence[MultipartPart],
+        *,
+        path_params: Sequence[str] = (),
+        fields: Mapping[str, str] | None = None,
+    ) -> JSONResultT: ...
+
+    def request_raw(
+        self,
+        operation: Operation,
+        data: bytes,
+        content_type: str,
+        *,
+        path_params: Sequence[str] = (),
+        query: QueryParams | None = None,
+    ) -> BytesResultT: ...
+
+    def request_bytes(
+        self,
+        operation: Operation,
+        *,
+        path_params: Sequence[str] = (),
+        query: QueryParams | None = None,
+    ) -> BytesResultT: ...
+
+    def stream(
+        self,
+        operation: Operation,
+        *,
+        path_params: Sequence[str] = (),
+        query: QueryParams | None = None,
+    ) -> StreamResultT: ...
+
+
+class APIResource(Generic[JSONResultT, BytesResultT, StreamResultT]):
+    """Base class for API resource groups backed by a shared transport."""
+
+    def __init__(
+        self,
+        http: HTTPTransport[JSONResultT, BytesResultT, StreamResultT],
+    ) -> None:
         self._http = http
 
     def _request(
@@ -21,8 +76,8 @@ class APIResource:
         *,
         path_params: Sequence[str] = (),
         query: QueryParams | None = None,
-        body: JSONValue = None,
-    ) -> JSONValue:
+        body: RequestBody = None,
+    ) -> JSONResultT:
         return self._http.request(
             operation, path_params=path_params, query=query, body=body
         )
@@ -34,7 +89,7 @@ class APIResource:
         *,
         path_params: Sequence[str] = (),
         fields: Mapping[str, str] | None = None,
-    ) -> JSONValue:
+    ) -> JSONResultT:
         return self._http.request_multipart(
             operation, parts, path_params=path_params, fields=fields
         )
@@ -47,7 +102,7 @@ class APIResource:
         *,
         path_params: Sequence[str] = (),
         query: QueryParams | None = None,
-    ) -> bytes:
+    ) -> BytesResultT:
         return self._http.request_raw(
             operation,
             data,
@@ -62,7 +117,7 @@ class APIResource:
         *,
         path_params: Sequence[str] = (),
         query: QueryParams | None = None,
-    ) -> bytes:
+    ) -> BytesResultT:
         return self._http.request_bytes(operation, path_params=path_params, query=query)
 
     def _stream(
@@ -71,5 +126,5 @@ class APIResource:
         *,
         path_params: Sequence[str] = (),
         query: QueryParams | None = None,
-    ) -> Iterator[ServerEvent]:
+    ) -> StreamResultT:
         return self._http.stream(operation, path_params=path_params, query=query)

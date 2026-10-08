@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from frontal_sdk.models.types import JSONValue
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class MultipartPart:
     """One file field in a multipart request."""
 
@@ -17,7 +17,7 @@ class MultipartPart:
     content_type: str = "application/octet-stream"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class ServerEvent:
     """A parsed server-sent event frame."""
 

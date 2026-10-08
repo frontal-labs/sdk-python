@@ -1,11 +1,14 @@
 # Python onboarding
 
-1. Install Python 3.10 or later.
-2. Clone this repository, create a virtual environment, and install the development extra with `python -m pip install -e ".[dev]"`.
-3. Run the format, lint, type-check, test, and build commands in the root README.
+1. Install Python 3.9–3.12 and `uv`.
+2. Clone this repository, then run `uv sync --extra dev` from the root.
+3. Run the quality commands in the root README.
 4. Review `AGENTS.md`, `docs/ARCHITECTURE.md`, and `contracts/README.md`.
-5. Explore the resource methods and compare their operations with `contracts/sdk-endpoints.json`.
-6. Choose a Python setup under `templates/` as a starting point for a CLI, batch job, or asyncio application.
-6. Add implementation, Python tests, documentation, and examples together.
+5. Compare service methods with `contracts/sdk-endpoints.json` before adding or
+   changing a public operation.
+6. Choose a starter project under `templates/` for a CLI, batch job, or async
+   application.
 
-Run the quality commands in the root README after making changes. `Frontal.from_env()` reads process environment variables; Python does not load `.env` files automatically.
+`Frontal()` and `AsyncFrontal()` read the `FRONTAL_*` variables from the
+process environment. Python does not load `.env` files automatically. Tests
+use RESPX mocks and do not need a key or a live service.

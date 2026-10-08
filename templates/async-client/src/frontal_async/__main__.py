@@ -9,20 +9,18 @@ import logging
 import sys
 from collections.abc import Sequence
 
-from frontal_sdk import Frontal, FrontalError, JSONValue
+from frontal_sdk import AsyncFrontal, FrontalError, JSONValue
 
 logger = logging.getLogger("frontal_async")
 
 
 async def fetch_agent(
-    client: Frontal, agent_id: str, semaphore: asyncio.Semaphore
+    client: AsyncFrontal, agent_id: str, semaphore: asyncio.Semaphore
 ) -> tuple[str, JSONValue | FrontalError]:
-    """Run one blocking SDK request without blocking the asyncio loop."""
+    """Run one native asynchronous SDK request."""
     async with semaphore:
         try:
-            result = await asyncio.to_thread(
-                client.agents.get_agents_by_param_1, agent_id
-            )
+            result = await client.agents.get_agents_by_param_1(agent_id)
         except FrontalError as error:
             return agent_id, error
         return agent_id, result
@@ -30,11 +28,11 @@ async def fetch_agent(
 
 async def run(agent_ids: Sequence[str], *, concurrency: int) -> int:
     """Fetch agents concurrently and print one JSON result per ID."""
-    client = Frontal.from_env()
     semaphore = asyncio.Semaphore(concurrency)
-    results = await asyncio.gather(
-        *(fetch_agent(client, agent_id, semaphore) for agent_id in agent_ids)
-    )
+    async with AsyncFrontal.from_env() as client:
+        results = await asyncio.gather(
+            *(fetch_agent(client, agent_id, semaphore) for agent_id in agent_ids)
+        )
 
     failures = 0
     for agent_id, result in results:
@@ -53,7 +51,7 @@ async def run(agent_ids: Sequence[str], *, concurrency: int) -> int:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Parse IDs and run the asynchronous SDK adapter."""
+    """Parse IDs and run the asynchronous SDK client."""
     parser = argparse.ArgumentParser(prog="frontal-async")
     parser.add_argument("agent_ids", nargs="+", help="agent IDs to fetch")
     parser.add_argument(

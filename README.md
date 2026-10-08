@@ -2,67 +2,82 @@
 
 ![Frontal Banner](./banner.png)
 
-**Frontal Python SDK library.**
-
-The Python SDK provides a unified `Frontal` client with typed resource methods for every operation in the committed endpoint inventory. The shared transport handles timeouts, safe GET retries, structured API errors, JSON, multipart uploads, raw responses, and server-sent events. Public APIs are typed and the distribution includes a `py.typed` marker for downstream type checkers.
-
-> **Current status:** resource methods cover all 370 operations in `contracts/sdk-endpoints.json`. Request and response payloads use the typed JSON boundary because the committed inventory does not include operation-specific schemas for these endpoints.
-
-The client accepts an explicit API key or can read `FRONTAL_API_KEY` and `FRONTAL_API_URL` from the environment. Configuration is validated when the client is created; custom headers can be supplied as any read-only or mutable mapping and are copied into the client configuration.
-
-## Repository map
-
-| Path | Purpose |
-| --- | --- |
-| `frontal_sdk/core/` | Client configuration, HTTP transport, errors, and operation descriptors |
-| `frontal_sdk/models/` | JSON boundary types, query parameters, uploads, and server events |
-| `frontal_sdk/resources/` | Typed resource methods grouped by API domain |
-| `tests/` | Pytest coverage for the shared client and HTTP transport |
-| `contracts/` | OpenAPI snapshots, endpoint inventory, and this repository's conformance reports |
-| `docs/` | Python architecture, resource, onboarding, testing, and release guidance |
-| `examples/` | Python integration guide and runnable examples |
-| `templates/` | Python-first starter projects for CLI, batch, and asyncio setups |
-| `scripts/` | Contract and documentation maintenance utilities |
-| `.github/` | Python CI, security analysis, and contribution templates |
+The `frontal` package provides synchronous and asynchronous Python clients for
+the Frontal API. Services are available on the client as typed attributes such
+as `client.ai`, `client.agents`, and `client.workflows`.
 
 ## Install
 
-For local development, install the package and its tools from the repository root:
+Python 3.9–3.12 is supported.
 
 ```bash
-python -m pip install -e ".[dev]"
+pip install frontal
+# or
+uv add frontal
 ```
-
-The package is not published yet. After release, install it with `python -m pip install frontal-sdk`.
 
 ## Quickstart
 
-Set `FRONTAL_API_KEY` in the process environment, then use the package-level client and a resource method:
+Set `FRONTAL_API_KEY`, then make the first request:
 
 ```python
 from frontal_sdk import Frontal
-client = Frontal.from_env()
-health = client.ai.get_health()
+with Frontal() as client:
+    health = client.ai.get_health()
+    print(health)
 ```
 
-Resource methods accept `query=` for URL parameters, `body=` for JSON request bodies, and explicit arguments for path placeholders. For example, `client.agents.get_agents_by_param_1("agent_123")` reads one agent.
+The async client exposes the same services and operation methods:
+
+```python
+import asyncio
+from frontal_sdk import AsyncFrontal
+async def main():
+    async with AsyncFrontal() as client:
+        return await client.ai.get_health()
+print(asyncio.run(main()))
+```
+
+`FRONTAL_API_URL`, `FRONTAL_ENV`, and `FRONTAL_DEBUG` configure the URL,
+environment header, and debug logging. The SDK does not load `.env` files.
+
+## What is included
+
+- All 370 operations in `contracts/sdk-endpoints.json`, grouped by service.
+- HTTPX sync and async transports with bounded GET retries, request IDs,
+  pagination helpers, polling, raw bytes, multipart uploads, and SSE streams.
+- Pydantic v2 request models and validation for JSON-compatible payloads.
+- A structured error hierarchy with status, code, request ID, and retryability.
+- Inline package typing, including `py.typed`.
+
+The OpenAPI snapshots define the operation inventory but do not include
+service-specific request and response schemas for most endpoints. The SDK
+does not guess those payload shapes; define request models with `APIModel` and
+use `PageResult[T]` for paginated responses where applicable.
 
 ## Development
 
-Requirements: Python 3.10 or later. Check the interpreter with `python --version` and `python -m pip --version`.
+Install the locked development environment with `uv`:
 
 ```bash
-ruff format --check .
-ruff check .
-mypy
-python -m pytest
-python -m build
+uv sync --extra dev
 ```
 
-The pytest suite exercises the HTTP transport and client using a local server. It does not require live API credentials.
+Run the CI checks locally:
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md), [`docs/ONBOARDING.md`](./docs/ONBOARDING.md), [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md), and [`AGENTS.md`](./AGENTS.md).
+```bash
+uv run ruff format --check .
+uv build
+uv run ruff check .
+uv run mypy --strict
+uv run python -m pytest
+uv run python scripts/check_contracts.py
+```
+
+The tests use RESPX at the HTTPX layer and do not need a running API or live
+credentials. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
+[`docs/TESTING.md`](docs/TESTING.md), and [`docs/PUBLISHING.md`](docs/PUBLISHING.md).
 
 ## License
 
-Apache-2.0. See [`LICENSE.md`](./LICENSE.md).
+Apache-2.0. See [`LICENSE.md`](LICENSE.md).

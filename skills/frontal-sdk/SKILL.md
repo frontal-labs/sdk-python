@@ -5,11 +5,11 @@ description: Guidance for adding or reviewing integrations using the Frontal Pyt
 
 # Frontal Python SDK
 
-The package-level client, shared core runtime, models, and resource methods are implemented. Resource methods are generated from `contracts/sdk-endpoints.json`; regenerate them with `python3 scripts/generate_resources.py` after contract changes. Follow the package structure and toolchain documented in this repository.
+The package provides both `Frontal` and `AsyncFrontal`, a shared HTTPX transport, Pydantic v2 boundary models, and service methods for every operation in `contracts/sdk-endpoints.json`. Keep client and resource methods hand-written. Use the contract checker to validate endpoint coverage and drift; do not generate public methods.
 
 ## Configuration
 
-Use `Frontal.from_env()` to read `FRONTAL_API_KEY` and optional `FRONTAL_API_URL` from the process environment, or pass configuration directly to `Frontal`. The SDK does not load `.env` files. See the root `.env.example` for local development conventions.
+Use `Frontal()` or `AsyncFrontal()` to read `FRONTAL_API_KEY`, `FRONTAL_API_URL`, `FRONTAL_ENV`, and `FRONTAL_DEBUG` from the process environment, or pass configuration directly. The SDK does not load `.env` files. See the root `.env.example` for local development conventions.
 
 ## Modules
 

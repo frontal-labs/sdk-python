@@ -23,8 +23,8 @@ documents = [
 manifest = {
     "name": "Frontal Python SDK",
     "language": "Python",
-    "version": "0.1.0",
-    "status": "pre-alpha",
+    "version": "1.0.0",
+    "status": "stable",
     "documents": documents,
 }
 content = json.dumps(manifest, indent=2) + "\n"

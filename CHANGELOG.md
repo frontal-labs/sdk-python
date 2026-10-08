@@ -2,10 +2,10 @@
 
 All notable changes to this SDK are recorded here.
 
-## Unreleased
+## 1.0.0 (2026-10-08)
 
-- Add the initial repository scaffold and shared API contract snapshots.
-- Replace the service package tree with generated, typed API resources.
-- Organize shared runtime code and public request types under `core/` and `models/`.
-- Cover all 370 endpoint inventory operations and validate generated resource coverage.
-- Add Python CLI, batch-job, and asyncio starter templates that use the SDK.
+### Features
+
+- Release the unified Python 1.0 SDK with sync and async clients, all 370
+  catalogued operations, Pydantic v2 models, offline HTTPX tests, and PyPI OIDC
+  publishing.

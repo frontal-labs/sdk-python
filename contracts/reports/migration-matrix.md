@@ -1,6 +1,6 @@
 # Python SDK endpoint coverage
 
-_Status: endpoint methods generated from the committed SDK endpoint inventory._
+_Status: hand-written endpoint methods follow the committed SDK endpoint inventory._
 
 | Metric | Value |
 | --- | ---: |
@@ -8,4 +8,4 @@ _Status: endpoint methods generated from the committed SDK endpoint inventory._
 | Contract endpoint entries | 370 |
 | Coverage | 100% |
 
-Method and path coverage is complete for `contracts/sdk-endpoints.json`. Request and response models remain JSON-typed because that inventory does not include operation-specific payload schemas.
+Method and path coverage is complete for `contracts/sdk-endpoints.json`. Request and response payloads use a Pydantic-validated JSON boundary because the inventory does not include operation-specific payload schemas.

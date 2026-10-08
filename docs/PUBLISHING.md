@@ -1,5 +1,16 @@
 # Publishing to PyPI
 
-Build both wheel and source distributions with `python -m build`. Publish `frontal-sdk` to PyPI using a protected version tag and GitHub trusted publishing (OIDC). Verify the uploaded metadata, files, and release notes on PyPI.
+Build the wheel and source distribution with `uv build`. The `publish.yml`
+workflow publishes the `frontal` distribution to PyPI when a `v*.*.*` tag is
+pushed. It uses GitHub Actions OIDC through `pypa/gh-action-pypi-publish`; no
+PyPI API token is stored in the repository.
 
-The repository currently has no registry publishing credentials or release action. Complete the implementation and release metadata first. Keep credentials in protected repository secrets and use the registry's recommended signing or trusted-publishing mechanism where available.
+Before the first release, configure PyPI Trusted Publishing for owner
+`frontal-labs`, repository `sdk-python`, workflow `publish.yml`, and the GitHub
+environment `pypi`. Protect that environment with the repository's release
+review rules. A release tag must match the package version in `pyproject.toml`;
+the first tag is `v1.0.0`.
+
+The release workflow runs formatting, build, lint, strict typing, offline tests,
+and the contract gate before uploading. Release notes are collected with
+Towncrier fragments in `changelog.d/` and included in `CHANGELOG.md`.

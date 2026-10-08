@@ -4,19 +4,18 @@ A small, installable command line app using only Python's `argparse` plus the Fr
 
 ## Install
 
-From this directory in the SDK repository:
+From this directory:
 
 ```bash
-python -m pip install -e ../..
-python -m pip install -e .
+uv sync
 ```
 
 Set `FRONTAL_API_KEY` in your shell. Then run:
 
 ```bash
-frontal-cli health
-frontal-cli agents
-frontal-cli agent agent_123
+uv run frontal-cli health
+uv run frontal-cli agents
+uv run frontal-cli agent agent_123
 ```
 
 Use `FRONTAL_API_URL` to override the default API URL. The CLI prints API results as JSON and sends request errors to stderr.
