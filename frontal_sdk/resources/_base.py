@@ -60,6 +60,14 @@ class HTTPTransport(Protocol[JSONResultT, BytesResultT, StreamResultT]):
         query: QueryParams | None = None,
     ) -> StreamResultT: ...
 
+    def stream_request(
+        self,
+        operation: Operation,
+        *,
+        body: RequestBody,
+        max_retries: int | None = None,
+    ) -> StreamResultT: ...
+
 
 class APIResource(Generic[JSONResultT, BytesResultT, StreamResultT]):
     """Base class for API resource groups backed by a shared transport."""
@@ -128,3 +136,12 @@ class APIResource(Generic[JSONResultT, BytesResultT, StreamResultT]):
         query: QueryParams | None = None,
     ) -> StreamResultT:
         return self._http.stream(operation, path_params=path_params, query=query)
+
+    def _stream_request(
+        self,
+        operation: Operation,
+        *,
+        body: RequestBody,
+        max_retries: int | None = None,
+    ) -> StreamResultT:
+        return self._http.stream_request(operation, body=body, max_retries=max_retries)

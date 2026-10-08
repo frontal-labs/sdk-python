@@ -374,6 +374,89 @@ class HttpClient:
                     continue
                 raise NetworkError(f"Stream request failed: {error}") from error
 
+    def stream_request(
+        self,
+        operation: Operation,
+        *,
+        body: RequestBody,
+        max_retries: int | None = None,
+    ) -> Iterator[ServerEvent]:
+        """Send a JSON POST and yield SSE events, retrying before the first event."""
+        if operation.method != "POST":
+            raise ValueError("stream_request() requires a POST operation")
+        retries = self._config.max_retries if max_retries is None else max_retries
+        if not 0 <= retries <= 10:
+            raise ValueError("max_retries must be between 0 and 10")
+        content = _json_body(body)
+        url = _request_url(self._config.base_url, operation, (), None)
+        attempt = 0
+        emitted = False
+        while True:
+            try:
+                with self._client.stream(
+                    "POST",
+                    url,
+                    headers=_headers(
+                        self._config,
+                        {
+                            "Accept": "text/event-stream",
+                            "Content-Type": "application/json",
+                        },
+                    ),
+                    json=content,
+                ) as response:
+                    if response.status_code in _RETRYABLE_STATUS and attempt < retries:
+                        time_sleep(
+                            _retry_delay(
+                                attempt,
+                                _parse_retry_after(response.headers.get("retry-after")),
+                            )
+                        )
+                        attempt += 1
+                        continue
+                    if response.is_error:
+                        raise _api_error(response)
+                    if not response.headers.get("content-type", "").startswith(
+                        "text/event-stream"
+                    ):
+                        raise FrontalError(
+                            "The API did not return an event stream",
+                            request_id=response.headers.get("x-request-id"),
+                            status_code=response.status_code,
+                        )
+                    event = "message"
+                    event_id: str | None = None
+                    data_lines: list[str] = []
+                    for line in response.iter_lines():
+                        event, event_id, data_lines, parsed = _parse_event_line(
+                            line, event, event_id, data_lines
+                        )
+                        if parsed is not None:
+                            emitted = True
+                            yield parsed
+                    if data_lines:
+                        emitted = True
+                        yield _event(event, event_id, data_lines)
+                    return
+            except FrontalError as error:
+                if error.retryable and not emitted and attempt < retries:
+                    time_sleep(_retry_delay(attempt, None))
+                    attempt += 1
+                    continue
+                raise
+            except httpx.TimeoutException as error:
+                if not emitted and attempt < retries:
+                    time_sleep(_retry_delay(attempt, None))
+                    attempt += 1
+                    continue
+                raise TimeoutError(f"Stream request timed out: {error}") from error
+            except httpx.RequestError as error:
+                if not emitted and attempt < retries:
+                    time_sleep(_retry_delay(attempt, None))
+                    attempt += 1
+                    continue
+                raise NetworkError(f"Stream request failed: {error}") from error
+
     def close(self) -> None:
         """Close the connection pool if this transport created it."""
         if self._owns_client:
@@ -650,6 +733,89 @@ class AsyncHttpClient:
                 raise TimeoutError(f"Stream request timed out: {error}") from error
             except httpx.RequestError as error:
                 if attempt < self._config.max_retries:
+                    await anyio.sleep(_retry_delay(attempt, None))
+                    attempt += 1
+                    continue
+                raise NetworkError(f"Stream request failed: {error}") from error
+
+    async def stream_request(
+        self,
+        operation: Operation,
+        *,
+        body: RequestBody,
+        max_retries: int | None = None,
+    ) -> AsyncIterator[ServerEvent]:
+        """Send a JSON POST and asynchronously yield SSE events."""
+        if operation.method != "POST":
+            raise ValueError("stream_request() requires a POST operation")
+        retries = self._config.max_retries if max_retries is None else max_retries
+        if not 0 <= retries <= 10:
+            raise ValueError("max_retries must be between 0 and 10")
+        content = _json_body(body)
+        url = _request_url(self._config.base_url, operation, (), None)
+        attempt = 0
+        emitted = False
+        while True:
+            try:
+                async with self._client.stream(
+                    "POST",
+                    url,
+                    headers=_headers(
+                        self._config,
+                        {
+                            "Accept": "text/event-stream",
+                            "Content-Type": "application/json",
+                        },
+                    ),
+                    json=content,
+                ) as response:
+                    if response.status_code in _RETRYABLE_STATUS and attempt < retries:
+                        await anyio.sleep(
+                            _retry_delay(
+                                attempt,
+                                _parse_retry_after(response.headers.get("retry-after")),
+                            )
+                        )
+                        attempt += 1
+                        continue
+                    if response.is_error:
+                        raise _api_error(response)
+                    if not response.headers.get("content-type", "").startswith(
+                        "text/event-stream"
+                    ):
+                        raise FrontalError(
+                            "The API did not return an event stream",
+                            request_id=response.headers.get("x-request-id"),
+                            status_code=response.status_code,
+                        )
+                    event = "message"
+                    event_id: str | None = None
+                    data_lines: list[str] = []
+                    async for line in response.aiter_lines():
+                        event, event_id, data_lines, parsed = _parse_event_line(
+                            line, event, event_id, data_lines
+                        )
+                        if parsed is not None:
+                            emitted = True
+                            yield parsed
+                    if data_lines:
+                        emitted = True
+                        yield _event(event, event_id, data_lines)
+                    return
+            except FrontalError as error:
+                if error.retryable and not emitted and attempt < retries:
+                    await anyio.sleep(_retry_delay(attempt, None))
+                    attempt += 1
+                    continue
+                raise
+            except httpx.TimeoutException as error:
+                if not emitted and attempt < retries:
+                    await anyio.sleep(_retry_delay(attempt, None))
+                    attempt += 1
+                    continue
+                raise TimeoutError(f"Stream request timed out: {error}") from error
+            except httpx.RequestError as error:
+                if not emitted and attempt < retries:
                     await anyio.sleep(_retry_delay(attempt, None))
                     attempt += 1
                     continue

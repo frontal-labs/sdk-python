@@ -12,8 +12,8 @@ from frontal_sdk.core.config import ClientConfig
 from frontal_sdk.core.http import AsyncHttpClient, HttpClient
 from frontal_sdk.models import JSONValue, ServerEvent
 from frontal_sdk.resources import (
-    AI,
     Agents,
+    AsyncAI,
     Audit,
     Auth,
     Billing,
@@ -27,6 +27,7 @@ from frontal_sdk.resources import (
     Pipelines,
     Sandbox,
     Schedules,
+    SyncAI,
     Webhooks,
     Workflows,
 )
@@ -102,7 +103,7 @@ class Frontal:
         http = HttpClient(config, http_client)
         self._http = http
         self.agents: Agents[JSONValue, bytes, Iterator[ServerEvent]] = Agents(http)
-        self.ai: AI[JSONValue, bytes, Iterator[ServerEvent]] = AI(http)
+        self.ai: SyncAI = SyncAI(http)
         self.audit: Audit[JSONValue, bytes, Iterator[ServerEvent]] = Audit(http)
         self.auth: Auth[JSONValue, bytes, Iterator[ServerEvent]] = Auth(http)
         self.billing: Billing[JSONValue, bytes, Iterator[ServerEvent]] = Billing(http)
@@ -174,7 +175,7 @@ class AsyncFrontal:
         self.agents: Agents[_AsyncJSONResult, _AsyncBytesResult, _AsyncStreamResult] = (
             Agents(http)
         )
-        self.ai: AI[_AsyncJSONResult, _AsyncBytesResult, _AsyncStreamResult] = AI(http)
+        self.ai: AsyncAI = AsyncAI(http)
         self.audit: Audit[_AsyncJSONResult, _AsyncBytesResult, _AsyncStreamResult] = (
             Audit(http)
         )

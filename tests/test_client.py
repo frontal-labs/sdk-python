@@ -15,6 +15,9 @@ from frontal_sdk import (
     AuthenticationError,
     Frontal,
     FrontalError,
+    GenerateImageResult,
+    GenerateObjectResult,
+    GenerateTextResult,
     MultipartPart,
     PageResult,
     RateLimitError,
@@ -24,11 +27,16 @@ from frontal_sdk import (
     async_poll_until,
     paginate,
     poll_until,
+    tool,
 )
 from frontal_sdk.core import ClientConfig, HttpClient, Operation
 from pydantic import Field
 
 API_URL = "https://api.frontal.dev/v1"
+
+
+def _sse_response(events: list[object]) -> bytes:
+    return b"".join(f"data: {json.dumps(event)}\n\n".encode() for event in events)
 
 
 @pytest.mark.parametrize("api_key", ["plain-key", "frt_", "frt_abcd", "frt_bad.key"])
@@ -52,6 +60,10 @@ class CreateAgent(APIModel):
     display_name: str = Field(alias="displayName")
 
 
+class ToolInput(APIModel):
+    value: int
+
+
 def test_sync_request_auth_query_request_id_and_encoded_path(
     respx_mock: respx.Router,
 ) -> None:
@@ -72,6 +84,620 @@ def test_sync_request_auth_query_request_id_and_encoded_path(
     assert request.url.raw_path.split(b"?", 1)[0] == b"/v1/agents/agent%2Fone"
     assert request.url.params["include_runs"] == "True"
     client.close()
+
+
+def test_sync_generate_text_uses_typed_chat_models(
+    respx_mock: respx.Router,
+) -> None:
+    route = respx_mock.post(f"{API_URL}/ai/chat/completions").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": "chat_1",
+                "object": "chat.completion",
+                "created": 1,
+                "model": "frontal-ai-fast",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": "hello"},
+                        "finishReason": "stop",
+                    }
+                ],
+                "usage": {
+                    "promptTokens": 2,
+                    "completionTokens": 1,
+                    "totalTokens": 3,
+                },
+            },
+        )
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+
+    result = client.ai.generate_text(
+        {"model": "frontal-ai-fast", "prompt": "say hello", "maxTokens": 24}
+    )
+
+    request_body = json.loads(route.calls.last.request.content)
+    assert isinstance(result, GenerateTextResult)
+    assert result.text == "hello"
+    assert result.usage.total_tokens == 3
+    assert request_body["messages"] == [{"role": "user", "content": "say hello"}]
+    assert request_body["maxTokens"] == 24
+    assert "topP" not in request_body
+    client.close()
+
+
+def test_sync_embed_normalizes_typed_embeddings_response(
+    respx_mock: respx.Router,
+) -> None:
+    route = respx_mock.post(f"{API_URL}/internal/embeddings").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "object": "list",
+                "data": [{"object": "embedding", "embedding": [0.1, 0.2], "index": 0}],
+                "model": "embed-model",
+                "usage": {"promptTokens": 2, "totalTokens": 2},
+            },
+        )
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+
+    result = client.ai.embed("embed-model", "hello")
+
+    assert result.embeddings == [[0.1, 0.2]]
+    assert result.usage.total_tokens == 2
+    assert json.loads(route.calls.last.request.content) == {
+        "model": "embed-model",
+        "input": "hello",
+    }
+    client.close()
+
+
+def test_sync_generate_object_and_image_helpers(respx_mock: respx.Router) -> None:
+    respx_mock.post(f"{API_URL}/ai/chat/completions").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": "chat_json",
+                "object": "chat.completion",
+                "created": 1,
+                "model": "frontal-ai-fast",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": '{"displayName":"Ada"}',
+                        },
+                        "finishReason": "stop",
+                    }
+                ],
+                "usage": {
+                    "promptTokens": 3,
+                    "completionTokens": 2,
+                    "totalTokens": 5,
+                },
+            },
+        )
+    )
+    image_route = respx_mock.post(f"{API_URL}/internal/predictions").mock(
+        return_value=httpx.Response(
+            200, json={"data": [{"url": "https://images.test/ada.png"}]}
+        )
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+
+    generated = client.ai.generate_object(
+        model="frontal-ai-fast", prompt="Return Ada", schema=CreateAgent
+    )
+    image = client.ai.generate_image({"prompt": "A friendly Ada portrait"})
+
+    assert isinstance(generated, GenerateObjectResult)
+    assert generated.object == CreateAgent(display_name="Ada")
+    assert generated.usage.total_tokens == 5
+    assert isinstance(image, GenerateImageResult)
+    assert image.images[0].url == "https://images.test/ada.png"
+    assert json.loads(image_route.calls.last.request.content) == {
+        "prompt": "A friendly Ada portrait",
+        "model": "dall-e-3",
+        "n": 1,
+        "size": "1024x1024",
+        "responseFormat": "url",
+    }
+    client.close()
+
+
+async def test_async_moderation_rerank_and_speech_helpers(
+    respx_mock: respx.Router,
+) -> None:
+    def prediction_response(request: httpx.Request) -> httpx.Response:
+        request_body = json.loads(request.content)
+        if "voice" in request_body:
+            return httpx.Response(
+                200,
+                content=b"audio",
+                headers={"content-type": "audio/mpeg"},
+            )
+        return httpx.Response(
+            200,
+            json={
+                "id": "moderation_1",
+                "model": "text-moderation-latest",
+                "results": [
+                    {
+                        "flagged": False,
+                        "categories": {"violence": False},
+                        "categoryScores": {"violence": 0.01},
+                    }
+                ],
+            },
+        )
+
+    prediction_route = respx_mock.post(f"{API_URL}/internal/predictions").mock(
+        side_effect=prediction_response
+    )
+    rerank_route = respx_mock.post(f"{API_URL}/internal/rerank").mock(
+        return_value=httpx.Response(200, json={"scores": [0.9, 0.2]})
+    )
+    client = AsyncFrontal("frt_local_key", max_retries=0)
+
+    moderation = await client.ai.moderate({"input": "hello"})
+    rerank = await client.ai.rerank(
+        {
+            "model": "rerank-v1",
+            "query": "SDK",
+            "documents": ["Python SDK", {"content": "Other", "chunkIndex": 2}],
+        }
+    )
+    speech = await client.ai.generate_speech(
+        {"text": "hello", "voice": "alloy", "format": "mp3"}
+    )
+
+    assert moderation.results[0].flagged is False
+    assert rerank.scores == [0.9, 0.2]
+    assert speech == b"audio"
+    rerank_body = json.loads(rerank_route.calls.last.request.content)
+    assert rerank_body["documents"] == [
+        {"content": "Python SDK"},
+        {"content": "Other", "chunkIndex": 2},
+    ]
+    assert prediction_route.call_count == 2
+    assert json.loads(prediction_route.calls.last.request.content) == {
+        "model": "tts-1",
+        "input": "hello",
+        "voice": "alloy",
+        "responseFormat": "mp3",
+    }
+    await client.aclose()
+
+
+def test_sync_generate_text_executes_tool_loop(respx_mock: respx.Router) -> None:
+    route = respx_mock.post(f"{API_URL}/ai/chat/completions").mock(
+        side_effect=[
+            httpx.Response(
+                200,
+                json={
+                    "id": "chat_tool_1",
+                    "object": "chat.completion",
+                    "created": 1,
+                    "model": "frontal-ai-fast",
+                    "choices": [
+                        {
+                            "index": 0,
+                            "message": {
+                                "role": "assistant",
+                                "toolCalls": [
+                                    {
+                                        "id": "call_1",
+                                        "type": "function",
+                                        "function": {
+                                            "name": "double",
+                                            "arguments": '{"value":4}',
+                                        },
+                                    }
+                                ],
+                            },
+                            "finishReason": "tool_calls",
+                        }
+                    ],
+                    "usage": {
+                        "promptTokens": 2,
+                        "completionTokens": 1,
+                        "totalTokens": 3,
+                    },
+                },
+            ),
+            httpx.Response(
+                200,
+                json={
+                    "id": "chat_tool_2",
+                    "object": "chat.completion",
+                    "created": 1,
+                    "model": "frontal-ai-fast",
+                    "choices": [
+                        {
+                            "index": 0,
+                            "message": {"role": "assistant", "content": "8"},
+                            "finishReason": "stop",
+                        }
+                    ],
+                    "usage": {
+                        "promptTokens": 5,
+                        "completionTokens": 1,
+                        "totalTokens": 6,
+                    },
+                },
+            ),
+        ]
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+
+    result = client.ai.generate_text(
+        {
+            "model": "frontal-ai-fast",
+            "prompt": "Double four",
+            "maxSteps": 2,
+            "tools": {
+                "double": tool(
+                    description="Double a number",
+                    parameters=ToolInput,
+                    execute=lambda value: {"value": value.value * 2},
+                )
+            },
+        }
+    )
+
+    assert result.text == "8"
+    assert len(result.steps) == 2
+    assert result.usage.total_tokens == 9
+    assert result.steps[0].tool_results[0].output == {"value": 8}
+    first_request = json.loads(route.calls[0].request.content)
+    second_request = json.loads(route.calls[1].request.content)
+    assert first_request["tools"][0]["function"]["name"] == "double"
+    assert second_request["messages"][-1]["role"] == "tool"
+    assert second_request["messages"][-1]["content"] == '{"value": 8}'
+    client.close()
+
+
+def test_sync_stream_text_yields_text_finish_and_done(
+    respx_mock: respx.Router,
+) -> None:
+    route = respx_mock.post(f"{API_URL}/ai/chat/completions").mock(
+        return_value=httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            content=_sse_response(
+                [
+                    {"choices": [{"delta": {"content": "hello "}}]},
+                    {
+                        "choices": [
+                            {"delta": {"content": "world"}, "finishReason": "stop"}
+                        ],
+                        "usage": {
+                            "promptTokens": 2,
+                            "completionTokens": 2,
+                            "totalTokens": 4,
+                        },
+                    },
+                    "[DONE]",
+                ]
+            ),
+        )
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+    chunks: list[str] = []
+
+    parts = list(
+        client.ai.stream_text(
+            {
+                "model": "frontal-ai-fast",
+                "prompt": "Say hello",
+                "onChunk": chunks.append,
+            }
+        )
+    )
+
+    assert [part.type for part in parts] == ["text", "text", "finish", "done"]
+    assert [part.text for part in parts[:2]] == ["hello ", "world"]
+    assert parts[2].usage.total_tokens == 4
+    assert chunks == ["hello ", "world"]
+    assert json.loads(route.calls.last.request.content)["stream"] is True
+    client.close()
+
+
+def test_stream_text_retries_retryable_response_before_first_event(
+    respx_mock: respx.Router, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("frontal_sdk.core.http.time_sleep", lambda _delay: None)
+    route = respx_mock.post(f"{API_URL}/ai/chat/completions").mock(
+        side_effect=[
+            httpx.Response(503, json={"message": "try again"}),
+            httpx.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                content=_sse_response(
+                    [
+                        {"choices": [{"delta": {"content": "ok"}}]},
+                        "[DONE]",
+                    ]
+                ),
+            ),
+        ]
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+
+    parts = list(
+        client.ai.stream_text(
+            {
+                "model": "frontal-ai-fast",
+                "prompt": "retry",
+                "streamRetries": 1,
+            }
+        )
+    )
+
+    assert route.call_count == 2
+    assert [part.type for part in parts] == ["text", "finish", "done"]
+    client.close()
+
+
+async def test_async_stream_text_assembles_tool_call_deltas(
+    respx_mock: respx.Router,
+) -> None:
+    respx_mock.post(f"{API_URL}/ai/chat/completions").mock(
+        return_value=httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            content=_sse_response(
+                [
+                    {
+                        "choices": [
+                            {
+                                "delta": {
+                                    "toolCalls": [
+                                        {
+                                            "index": 0,
+                                            "id": "call_1",
+                                            "function": {
+                                                "name": "lookup",
+                                                "arguments": '{"id":',
+                                            },
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "choices": [
+                            {
+                                "delta": {
+                                    "toolCalls": [
+                                        {
+                                            "index": 0,
+                                            "function": {"arguments": "1}"},
+                                        }
+                                    ]
+                                },
+                                "finishReason": "tool_calls",
+                            }
+                        ],
+                        "usage": {
+                            "promptTokens": 1,
+                            "completionTokens": 1,
+                            "totalTokens": 2,
+                        },
+                    },
+                    "[DONE]",
+                ]
+            ),
+        )
+    )
+    client = AsyncFrontal("frt_local_key", max_retries=0)
+
+    parts = [
+        part async for part in client.ai.stream_text({"model": "m", "prompt": "go"})
+    ]
+
+    assert [part.type for part in parts] == ["tool-call", "finish", "done"]
+    assert parts[0].tool_name == "lookup"
+    assert parts[0].input == {"id": 1}
+    assert parts[1].finish_reason == "tool-calls"
+    await client.aclose()
+
+
+async def test_async_generate_text_runs_async_tool_executor(
+    respx_mock: respx.Router,
+) -> None:
+    respx_mock.post(f"{API_URL}/ai/chat/completions").mock(
+        side_effect=[
+            httpx.Response(
+                200,
+                json={
+                    "id": "chat_async_tool_1",
+                    "object": "chat.completion",
+                    "created": 1,
+                    "model": "frontal-ai-fast",
+                    "choices": [
+                        {
+                            "index": 0,
+                            "message": {
+                                "role": "assistant",
+                                "toolCalls": [
+                                    {
+                                        "id": "call_2",
+                                        "type": "function",
+                                        "function": {
+                                            "name": "double",
+                                            "arguments": '{"value":3}',
+                                        },
+                                    }
+                                ],
+                            },
+                            "finishReason": "tool_calls",
+                        }
+                    ],
+                    "usage": {
+                        "promptTokens": 1,
+                        "completionTokens": 1,
+                        "totalTokens": 2,
+                    },
+                },
+            ),
+            httpx.Response(
+                200,
+                json={
+                    "id": "chat_async_tool_2",
+                    "object": "chat.completion",
+                    "created": 1,
+                    "model": "frontal-ai-fast",
+                    "choices": [
+                        {
+                            "index": 0,
+                            "message": {"role": "assistant", "content": "6"},
+                            "finishReason": "stop",
+                        }
+                    ],
+                    "usage": {
+                        "promptTokens": 3,
+                        "completionTokens": 1,
+                        "totalTokens": 4,
+                    },
+                },
+            ),
+        ]
+    )
+    client = AsyncFrontal("frt_local_key", max_retries=0)
+
+    async def double(value: Any) -> dict[str, int]:
+        return {"value": value.value * 2}
+
+    result = await client.ai.generate_text(
+        {
+            "model": "frontal-ai-fast",
+            "prompt": "Double three",
+            "maxSteps": 2,
+            "tools": {
+                "double": tool(
+                    description="Double a number",
+                    parameters=ToolInput,
+                    execute=double,
+                )
+            },
+        }
+    )
+
+    assert result.text == "6"
+    assert result.usage.total_tokens == 6
+    assert result.steps[0].tool_results[0].output == {"value": 6}
+    await client.aclose()
+
+
+def test_agent_builder_validates_and_sends_defaults(
+    respx_mock: respx.Router,
+) -> None:
+    route = respx_mock.post(f"{API_URL}/agents").mock(
+        return_value=httpx.Response(201, json={"id": "agent_1"})
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+
+    result = (
+        client.agents.define("ticket-triager")
+        .description("Triage support tickets")
+        .trigger("support.ticket.created")
+        .can_read("ticket")
+        .tags("support")
+        .create()
+    )
+
+    request_body = json.loads(route.calls.last.request.content)
+    assert result == {"id": "agent_1"}
+    assert request_body["triggers"] == [{"event": "support.ticket.created"}]
+    assert request_body["scope"]["read"] == ["ticket"]
+    assert request_body["confidence"]["autoExecuteAbove"] == 0.85
+    assert request_body["retry"]["backoff"] == "exponential"
+    assert "rateLimit" not in request_body
+    client.close()
+
+
+def test_workflow_builder_creates_base_and_version(
+    respx_mock: respx.Router,
+) -> None:
+    create_route = respx_mock.post(f"{API_URL}/workflows").mock(
+        return_value=httpx.Response(
+            201,
+            json={
+                "workflow": {
+                    "id": "workflow_1",
+                    "name": "Café handoff",
+                    "status": "draft",
+                }
+            },
+        )
+    )
+    version_route = respx_mock.post(f"{API_URL}/workflows/workflow_1/versions").mock(
+        return_value=httpx.Response(201, json={"latestVersion": 1})
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+
+    result = (
+        client.workflows.define("Café handoff")
+        .description("Review incoming requests")
+        .version("1.0.0")
+        .manual()
+        .task("review", {"queue": "support"}, timeout="30s")
+        .approval("approve", ["manager"], depends_on=["review"])
+        .tags("support")
+        .create()
+    )
+
+    base_body = json.loads(create_route.calls.last.request.content)
+    version_body = json.loads(version_route.calls.last.request.content)
+    assert base_body == {
+        "name": "Café handoff",
+        "slug": "cafe-handoff",
+        "description": "Review incoming requests",
+    }
+    assert version_body["spec"]["triggers"] == [{"type": "manual"}]
+    assert version_body["spec"]["steps"][1]["dependsOn"] == ["review"]
+    assert result["id"] == "workflow_1"
+    assert result["version"] == 1
+    client.close()
+
+
+async def test_async_workflow_builder_creates_base_and_version(
+    respx_mock: respx.Router,
+) -> None:
+    create_route = respx_mock.post(f"{API_URL}/workflows").mock(
+        return_value=httpx.Response(
+            201,
+            json={"workflow": {"workflowId": "workflow_2", "status": "draft"}},
+        )
+    )
+    version_route = respx_mock.post(f"{API_URL}/workflows/workflow_2/versions").mock(
+        return_value=httpx.Response(201, json={"latestVersion": 2})
+    )
+    client = AsyncFrontal("frt_local_key", max_retries=0)
+
+    result = await (
+        client.workflows.define("Async workflow")
+        .event("ticket.created", {"priority": "high"})
+        .delay("wait", "5m")
+        .create()
+    )
+
+    assert (
+        json.loads(create_route.calls.last.request.content)["slug"] == "async-workflow"
+    )
+    assert (
+        json.loads(version_route.calls.last.request.content)["spec"]["steps"][0]["type"]
+        == "delay"
+    )
+    assert result["id"] == "workflow_2"
+    assert result["version"] == 2
+    await client.aclose()
 
 
 def test_pydantic_request_model_serializes_aliases(respx_mock: respx.Router) -> None:
@@ -213,6 +839,58 @@ async def test_async_request_and_retry(respx_mock: respx.Router) -> None:
     async with AsyncFrontal("frt_local_key", max_retries=1) as client:
         assert await client.ai.get_health() == {"ok": True}
     assert route.call_count == 2
+
+
+@pytest.mark.anyio
+async def test_async_generate_text_uses_typed_chat_models(
+    respx_mock: respx.Router,
+) -> None:
+    respx_mock.post(f"{API_URL}/ai/chat/completions").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": "chat_1",
+                "object": "chat.completion",
+                "created": 1,
+                "model": "frontal-ai-fast",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": "async hello"},
+                        "finishReason": "stop",
+                    }
+                ],
+            },
+        )
+    )
+    async with AsyncFrontal("frt_local_key", max_retries=0) as client:
+        result = await client.ai.generate_text(
+            {"model": "frontal-ai-fast", "prompt": "say hello"}
+        )
+
+    assert isinstance(result, GenerateTextResult)
+    assert result.text == "async hello"
+    assert result.usage.total_tokens == 0
+
+
+@pytest.mark.anyio
+async def test_async_agent_builder_uses_async_transport(
+    respx_mock: respx.Router,
+) -> None:
+    route = respx_mock.post(f"{API_URL}/agents").mock(
+        return_value=httpx.Response(201, json={"id": "agent_1"})
+    )
+    async with AsyncFrontal("frt_local_key", max_retries=0) as client:
+        result = await (
+            client.agents.define("ticket-triager")
+            .trigger("support.ticket.created")
+            .create()
+        )
+
+    assert result == {"id": "agent_1"}
+    assert json.loads(route.calls.last.request.content)["triggers"] == [
+        {"event": "support.ticket.created"}
+    ]
 
 
 @pytest.mark.anyio

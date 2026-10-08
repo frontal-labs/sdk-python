@@ -86,6 +86,7 @@ warn_unused_ignores = true
 package = "frontal_sdk"
 filename = "CHANGELOG.md"
 directory = "changelog.d"
+start_string = "<!-- towncrier release notes start -->\n"
 title_format = "## {version} ({project_date})"
 issue_format = "[#{issue}](https://github.com/frontal-labs/sdk-python/issues/{issue})"
 underlines = ["", "", ""]

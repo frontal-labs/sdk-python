@@ -37,6 +37,8 @@ jobs:
         run: uv run mypy --strict
       - name: Test sync, async, examples, and docs
         run: uv run python -m pytest
+      - name: Validate changelog fragments
+        run: uv run towncrier build --draft
       - name: Check API contract
         run: uv run python scripts/check_contracts.py
       - name: Publish with GitHub OIDC trusted publishing

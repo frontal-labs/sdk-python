@@ -41,5 +41,7 @@ jobs:
         run: uv run python -m pytest tests/test_examples.py
       - name: Execute README examples
         run: uv run python -m pytest tests/test_docs.py
+      - name: Validate changelog fragments
+        run: uv run towncrier build --draft
       - name: Check API contract
         run: uv run python scripts/check_contracts.py
