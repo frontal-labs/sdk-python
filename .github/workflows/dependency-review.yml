@@ -13,6 +13,9 @@ concurrency:
 jobs:
   review:
     name: Dependency review
+    # Dependency review requires the dependency graph, which is unavailable
+    # for private repositories without GitHub Advanced Security.
+    if: github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
     permissions:
       contents: read
