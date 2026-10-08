@@ -23,6 +23,9 @@ Requires Python 3.11+ for full TOML-aware checks (stdlib tomllib); on 3.10 it
 falls back to section-presence checks only and says so.
 """
 
+# Keep full, actionable testing guidance in this standalone checker.
+# ruff: noqa: E501
+
 from __future__ import annotations
 
 import argparse
@@ -62,7 +65,9 @@ def read_text(path: Path) -> str:
 
 def has_section(text: str, section: str) -> bool:
     """Text-level TOML/INI section presence check, e.g. section='tool.pytest'."""
-    pattern = re.compile(r"^\s*\[" + re.escape(section) + r"(\.[A-Za-z0-9_.-]+)?\]", re.M)
+    pattern = re.compile(
+        r"^\s*\[" + re.escape(section) + r"(\.[A-Za-z0-9_.-]+)?\]", re.M
+    )
     return bool(pattern.search(text))
 
 
@@ -122,7 +127,9 @@ def main() -> int:
     tool = pp_data.get("tool", {}) if isinstance(pp_data.get("tool", {}), dict) else {}
     pp_pytest_tbl = tool.get("pytest")
     if tomllib is not None and pp_text:
-        pp_has_ini_options = isinstance(pp_pytest_tbl, dict) and "ini_options" in pp_pytest_tbl
+        pp_has_ini_options = (
+            isinstance(pp_pytest_tbl, dict) and "ini_options" in pp_pytest_tbl
+        )
         pp_has_native_pytest = isinstance(pp_pytest_tbl, dict) and any(
             k != "ini_options" for k in pp_pytest_tbl
         )
@@ -137,8 +144,12 @@ def main() -> int:
     # --- pytest config source conflicts (pytest reads the FIRST match only) ---
     setup_cfg_text = read_text(setup_cfg) if setup_cfg.is_file() else ""
     tox_ini_text = read_text(tox_ini) if tox_ini.is_file() else ""
-    setup_cfg_has_pytest = bool(setup_cfg_text) and has_exact_section(setup_cfg_text, "tool:pytest")
-    tox_ini_has_pytest = bool(tox_ini_text) and has_exact_section(tox_ini_text, "pytest")
+    setup_cfg_has_pytest = bool(setup_cfg_text) and has_exact_section(
+        setup_cfg_text, "tool:pytest"
+    )
+    tox_ini_has_pytest = bool(tox_ini_text) and has_exact_section(
+        tox_ini_text, "pytest"
+    )
 
     if pytest_ini.is_file() and pp_has_pytest:
         err(
@@ -194,10 +205,16 @@ def main() -> int:
         )
 
     # --- key-level coverage checks (TOML-aware only) ---
-    if tomllib is not None and pp_has_coverage and isinstance(tool.get("coverage"), dict):
+    if (
+        tomllib is not None
+        and pp_has_coverage
+        and isinstance(tool.get("coverage"), dict)
+    ):
         cov = tool["coverage"]
         run = cov.get("run", {}) if isinstance(cov.get("run", {}), dict) else {}
-        report = cov.get("report", {}) if isinstance(cov.get("report", {}), dict) else {}
+        report = (
+            cov.get("report", {}) if isinstance(cov.get("report", {}), dict) else {}
+        )
 
         if run.get("branch") is not True:
             warn(
@@ -210,8 +227,14 @@ def main() -> int:
                 "[tool.coverage.run] parallel = true without relative_files = true — combining data across paths/runners will mismatch files",
             )
 
-        ini = pp_pytest_tbl.get("ini_options", {}) if isinstance(pp_pytest_tbl, dict) else {}
-        addopts = addopts_as_string(ini.get("addopts", "")) if isinstance(ini, dict) else ""
+        ini = (
+            pp_pytest_tbl.get("ini_options", {})
+            if isinstance(pp_pytest_tbl, dict)
+            else {}
+        )
+        addopts = (
+            addopts_as_string(ini.get("addopts", "")) if isinstance(ini, dict) else ""
+        )
         has_gate = "fail_under" in report or "--cov-fail-under" in addopts
         if not has_gate:
             warn(

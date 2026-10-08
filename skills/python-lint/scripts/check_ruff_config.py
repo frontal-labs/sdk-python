@@ -18,6 +18,9 @@ Exit codes: 0 = clean (warnings allowed unless --strict), 1 = findings,
 2 = environment/usage problem (e.g. Python < 3.11, missing pyproject.toml).
 """
 
+# Keep full, actionable lint guidance in this standalone checker.
+# ruff: noqa: E501
+
 from __future__ import annotations
 
 import argparse
@@ -132,7 +135,9 @@ def check_legacy_remnants(root: Path, pyproject: dict) -> None:
     for group, deps in (project.get("optional-dependencies", {}) or {}).items():
         dep_lists.append((f"project.optional-dependencies.{group}", deps or []))
     for group, deps in (pyproject.get("dependency-groups", {}) or {}).items():
-        deps = [d for d in (deps or []) if isinstance(d, str)]  # skip include-group tables
+        deps = [
+            d for d in (deps or []) if isinstance(d, str)
+        ]  # skip include-group tables
         dep_lists.append((f"dependency-groups.{group}", deps))
     for where, deps in dep_lists:
         for dep in deps:
@@ -155,9 +160,17 @@ def check_ruff_tables(root: Path, ruff: dict) -> None:
             )
 
     lint = ruff.get("lint", {})
-    select = [s for s in (lint.get("select") or ruff.get("select") or []) if isinstance(s, str)]
+    select = [
+        s
+        for s in (lint.get("select") or ruff.get("select") or [])
+        if isinstance(s, str)
+    ]
     extend_select = [s for s in (lint.get("extend-select") or []) if isinstance(s, str)]
-    ignore = {s for s in (lint.get("ignore") or ruff.get("ignore") or []) if isinstance(s, str)}
+    ignore = {
+        s
+        for s in (lint.get("ignore") or ruff.get("ignore") or [])
+        if isinstance(s, str)
+    }
     effective_select = select + extend_select
 
     if not effective_select:
@@ -212,7 +225,10 @@ def check_target_version(pyproject: dict) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
-        "--root", type=Path, default=Path.cwd(), help="repo root to check (default: cwd)"
+        "--root",
+        type=Path,
+        default=Path.cwd(),
+        help="repo root to check (default: cwd)",
     )
     ap.add_argument("--strict", action="store_true", help="exit 1 on warnings too")
     args = ap.parse_args()

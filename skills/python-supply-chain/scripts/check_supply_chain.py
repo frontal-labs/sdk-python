@@ -19,6 +19,9 @@ Python 3.10+, stdlib only. YAML/TOML are matched with conservative regexes on
 purpose: no third-party parser, and a miss degrades to WARN, never a crash.
 """
 
+# Keep full, actionable supply-chain guidance in this standalone checker.
+# ruff: noqa: E501
+
 from __future__ import annotations
 
 import argparse
@@ -113,10 +116,14 @@ def check_lockfile(root: Path) -> None:
         if (root / name).is_file():
             report("PASS", "lockfile", f"{name} present")
             return
-    reqs = sorted(root.glob("requirements*.txt")) + sorted(root.glob("requirements/*.txt"))
+    reqs = sorted(root.glob("requirements*.txt")) + sorted(
+        root.glob("requirements/*.txt")
+    )
     if reqs:
         if any("--hash=" in read(r) for r in reqs):
-            report("PASS", "lockfile", f"hash-pinned requirements ({reqs[0].name}, ...)")
+            report(
+                "PASS", "lockfile", f"hash-pinned requirements ({reqs[0].name}, ...)"
+            )
         else:
             report(
                 "WARN",
@@ -192,8 +199,12 @@ def check_workflows(root: Path) -> None:
     if "scorecard-action" in joined:
         report("PASS", "scorecard", "OpenSSF Scorecard workflow present")
     else:
-        report("NOTE", "scorecard", "no Scorecard workflow (optional posture dashboard)")
-    if re.search(r"attest-build-provenance|attest-sbom|cyclonedx|anchore/sbom-action", joined):
+        report(
+            "NOTE", "scorecard", "no Scorecard workflow (optional posture dashboard)"
+        )
+    if re.search(
+        r"attest-build-provenance|attest-sbom|cyclonedx|anchore/sbom-action", joined
+    ):
         report("PASS", "sbom-provenance", "SBOM/attestation step found in workflows")
     else:
         report(
@@ -203,7 +214,9 @@ def check_workflows(root: Path) -> None:
         )
     unpinned = []
     for name, text in flows.items():
-        for m in re.finditer(r"^\s*(?:-\s*)?uses:\s*([\w./-]+)@([\w.-]+)", text, re.MULTILINE):
+        for m in re.finditer(
+            r"^\s*(?:-\s*)?uses:\s*([\w./-]+)@([\w.-]+)", text, re.MULTILINE
+        ):
             action, ref = m.group(1), m.group(2)
             if action.startswith("./"):
                 continue
@@ -220,7 +233,8 @@ def check_workflows(root: Path) -> None:
 
 def check_misc(root: Path) -> None:
     if any(
-        (root / p).is_file() for p in ("SECURITY.md", ".github/SECURITY.md", "docs/SECURITY.md")
+        (root / p).is_file()
+        for p in ("SECURITY.md", ".github/SECURITY.md", "docs/SECURITY.md")
     ):
         report("PASS", "security-policy", "SECURITY.md present")
     else:
@@ -230,7 +244,9 @@ def check_misc(root: Path) -> None:
             "no SECURITY.md — no documented way to report a vulnerability",
         )
     pyproject = root / "pyproject.toml"
-    if pyproject.is_file() and re.search(r"^\s*exclude-newer\s*=", read(pyproject), re.MULTILINE):
+    if pyproject.is_file() and re.search(
+        r"^\s*exclude-newer\s*=", read(pyproject), re.MULTILINE
+    ):
         report("PASS", "freshness-window", "[tool.uv] exclude-newer configured")
     else:
         report(
@@ -244,7 +260,11 @@ def check_misc(root: Path) -> None:
 def gh_json(args: list[str], cwd: Path | None = None) -> tuple[int, dict | list | None]:
     try:
         proc = subprocess.run(
-            ["gh", *args], capture_output=True, text=True, timeout=30, cwd=str(cwd) if cwd else None
+            ["gh", *args],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(cwd) if cwd else None,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         return 1, {"error": str(exc)}
@@ -259,7 +279,8 @@ def gh_json(args: list[str], cwd: Path | None = None) -> tuple[int, dict | list 
 def check_github(root: Path) -> None:
     if shutil.which("gh") is None:
         print(
-            "ERROR github-checks: gh CLI not found on PATH (needed for --github)", file=sys.stderr
+            "ERROR github-checks: gh CLI not found on PATH (needed for --github)",
+            file=sys.stderr,
         )
         raise SystemExit(2)
     rc, view = gh_json(
@@ -275,7 +296,11 @@ def check_github(root: Path) -> None:
         return
     repo = view["nameWithOwner"]
     rc, data = gh_json(["api", f"repos/{repo}"])
-    sec = (data or {}).get("security_and_analysis") or {} if isinstance(data, dict) else {}
+    sec = (
+        (data or {}).get("security_and_analysis") or {}
+        if isinstance(data, dict)
+        else {}
+    )
     for key, check in (
         ("secret_scanning", "gh-secret-scanning"),
         ("secret_scanning_push_protection", "gh-push-protection"),
@@ -286,7 +311,11 @@ def check_github(root: Path) -> None:
         elif status == "disabled":
             report("FAIL", check, f"{key} disabled — enable it (free on public repos)")
         else:
-            report("WARN", check, f"{key} state unknown (insufficient token scope or licensing)")
+            report(
+                "WARN",
+                check,
+                f"{key} state unknown (insufficient token scope or licensing)",
+            )
     rc, _ = gh_json(["api", f"repos/{repo}/vulnerability-alerts"])
     if rc == 0:
         report("PASS", "gh-dependabot-alerts", "Dependabot alerts enabled")
@@ -320,12 +349,19 @@ def main() -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     ap.add_argument(
-        "--root", type=Path, default=Path.cwd(), help="repository root to audit (default: cwd)"
+        "--root",
+        type=Path,
+        default=Path.cwd(),
+        help="repository root to audit (default: cwd)",
     )
     ap.add_argument(
-        "--github", action="store_true", help="also query GitHub-side settings via the gh CLI"
+        "--github",
+        action="store_true",
+        help="also query GitHub-side settings via the gh CLI",
     )
-    ap.add_argument("--strict", action="store_true", help="treat WARN as FAIL for the exit code")
+    ap.add_argument(
+        "--strict", action="store_true", help="treat WARN as FAIL for the exit code"
+    )
     args = ap.parse_args()
 
     root = args.root.resolve()

@@ -21,6 +21,9 @@ Usage:
   python3 check_wheel.py [--project-root DIR] [--expect PATH]... [--no-sdist] [DIST_DIR]
 """
 
+# Keep full, actionable packaging guidance in this standalone checker.
+# ruff: noqa: E501
+
 from __future__ import annotations
 
 import argparse
@@ -111,15 +114,23 @@ def check_wheel(path: Path, expected: list[str]) -> None:
         {n.split("/", 1)[0] for n in names if n.split("/", 1)[0].endswith(".dist-info")}
     )
     if len(dist_infos) != 1:
-        err(label, f"expected exactly one *.dist-info directory, found {dist_infos or 'none'}")
+        err(
+            label,
+            f"expected exactly one *.dist-info directory, found {dist_infos or 'none'}",
+        )
     else:
         di = dist_infos[0]
         for required in ("METADATA", "WHEEL", "RECORD"):
             if f"{di}/{required}" not in names:
-                err(label, f"missing {di}/{required} — wheel is malformed and pip may reject it")
+                err(
+                    label,
+                    f"missing {di}/{required} — wheel is malformed and pip may reject it",
+                )
 
     tops = wheel_top_levels(names)
-    infos.append(f"INFO {label}: top-level entries: {', '.join(tops) if tops else '(none)'}")
+    infos.append(
+        f"INFO {label}: top-level entries: {', '.join(tops) if tops else '(none)'}"
+    )
     if not tops:
         err(label, "wheel contains no importable top-level package or module")
     for leak in sorted({t.lower() for t in tops} & LEAK_TOP_LEVELS):
@@ -145,9 +156,14 @@ def check_sdist(path: Path) -> None:
     except (tarfile.TarError, OSError) as exc:
         err(label, f"not a valid .tar.gz sdist: {exc}")
         return
-    has_pyproject = any(n.split("/")[1:] == ["pyproject.toml"] for n in names if "/" in n)
+    has_pyproject = any(
+        n.split("/")[1:] == ["pyproject.toml"] for n in names if "/" in n
+    )
     if not has_pyproject:
-        err(label, "sdist has no <root>/pyproject.toml — cannot be built by PEP 517 frontends")
+        err(
+            label,
+            "sdist has no <root>/pyproject.toml — cannot be built by PEP 517 frontends",
+        )
     if not any(n.endswith(".py") for n in names):
         err(label, "sdist contains no .py files — source is missing from the artifact")
 
@@ -175,7 +191,9 @@ def main() -> int:
         help="archive path that must exist in every wheel (repeatable), e.g. my_package/py.typed",
     )
     ap.add_argument(
-        "--no-sdist", action="store_true", help="do not require an sdist (wheel-only builds)"
+        "--no-sdist",
+        action="store_true",
+        help="do not require an sdist (wheel-only builds)",
     )
     args = ap.parse_args()
 
@@ -212,7 +230,9 @@ def main() -> int:
     if errors:
         for line in errors:
             print(line, file=sys.stderr)
-        print(f"FAIL: {len(errors)} error(s) across {len(wheels)} wheel(s), {len(sdists)} sdist(s)")
+        print(
+            f"FAIL: {len(errors)} error(s) across {len(wheels)} wheel(s), {len(sdists)} sdist(s)"
+        )
         return 1
     checked = ", ".join(p.name for p in wheels + sdists)
     print(

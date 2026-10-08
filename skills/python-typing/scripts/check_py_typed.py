@@ -15,6 +15,9 @@ Output: one `OK`/`ERROR`/`WARN <check>: <detail>` line per check.
 Exit codes: 0 = all checks passed, 1 = at least one ERROR, 2 = usage error.
 """
 
+# Keep full, actionable typing guidance in this standalone checker.
+# ruff: noqa: E501
+
 from __future__ import annotations
 
 import argparse
@@ -81,11 +84,19 @@ def locate_package(root: Path, name: str | None) -> Path | None:
         return None
     candidates = candidate_packages(root)
     if not candidates:
-        report("ERROR", "source", f"no import package found under {root} — pass --package NAME")
+        report(
+            "ERROR",
+            "source",
+            f"no import package found under {root} — pass --package NAME",
+        )
         return None
     if len(candidates) > 1:
         names = ", ".join(c.name for c in candidates)
-        report("ERROR", "source", f"multiple packages found ({names}) — pass --package NAME")
+        report(
+            "ERROR",
+            "source",
+            f"multiple packages found ({names}) — pass --package NAME",
+        )
         return None
     return candidates[0]
 
@@ -104,7 +115,9 @@ def check_wheel(dist: Path, pkg: str) -> None:
     whl = newest(dist, "*.whl")
     if whl is None:
         report(
-            "ERROR", "wheel", f"no *.whl in {dist} — run `uv build` (or `python -m build`) first"
+            "ERROR",
+            "wheel",
+            f"no *.whl in {dist} — run `uv build` (or `python -m build`) first",
         )
         return
     try:
@@ -154,11 +167,19 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--package", help="import package name (auto-detected when unambiguous)")
-    ap.add_argument("--root", type=Path, default=Path.cwd(), help="project root (default: cwd)")
-    ap.add_argument("--dist", type=Path, help="artifacts directory (default: <root>/dist)")
     ap.add_argument(
-        "--source-only", action="store_true", help="only check the source tree, skip wheel/sdist"
+        "--package", help="import package name (auto-detected when unambiguous)"
+    )
+    ap.add_argument(
+        "--root", type=Path, default=Path.cwd(), help="project root (default: cwd)"
+    )
+    ap.add_argument(
+        "--dist", type=Path, help="artifacts directory (default: <root>/dist)"
+    )
+    ap.add_argument(
+        "--source-only",
+        action="store_true",
+        help="only check the source tree, skip wheel/sdist",
     )
     args = ap.parse_args()
 
