@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "frontal-sdk"
+version = "0.1.0"
+description = "Python client library for the Frontal API"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE.md"]
+authors = [{ name = "Frontal Labs", email = "sdk@frontal.dev" }]
+keywords = ["frontal", "sdk", "api", "client"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["build>=1.2", "mypy>=1.15", "pytest>=8", "ruff>=0.9"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["frontal_sdk*"]
+
+[tool.setuptools.package-data]
+frontal_sdk = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+src = ["frontal_sdk"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["frontal_sdk"]
+no_implicit_optional = true
+warn_unused_configs = true
+warn_unused_ignores = true
