@@ -1,0 +1,8 @@
+{
+  "repository": "sdk-python",
+  "language": "Python",
+  "status": "not-started",
+  "matched": 0,
+  "unmatched": 347,
+  "note": "No Python service operations are implemented in this scaffold."
+}
