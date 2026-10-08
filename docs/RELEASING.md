@@ -1,10 +1,13 @@
-# Python release checklist
+# Python release process
 
-For a release, update `pyproject.toml` and `frontal_sdk.__version__`, add a
-Towncrier fragment under `changelog.d/`, render the changelog, and confirm all
-CI gates pass. Push the matching version tag (for example `v1.0.0`); the
-`publish.yml` workflow validates the package and publishes `frontal` to PyPI
-using OIDC trusted publishing. Verify the uploaded metadata, wheel, source
-distribution, and release notes on PyPI.
+Use Conventional Commit pull request titles (for example,
+`feat(client): add retry option`). After those commits reach `main`, Release
+Please opens or updates a release pull request with the version bump and
+generated `CHANGELOG.md`. Review the release notes and package version fields,
+then merge the release pull request only after all required CI checks pass.
 
-Before publishing, run the Python CI checks, update the changelog and package metadata, review `contracts/reports/migration-matrix.md`, and verify the artifact contents.
+The merge creates the version tag and GitHub Release. The `publish.yml`
+workflow reruns the package quality and contract checks, generates provenance
+for the wheel and source distribution, then publishes `frontal` to PyPI through
+OIDC. The `pypi` environment must have required reviewers configured. Verify
+the uploaded metadata and files on PyPI after publication.
