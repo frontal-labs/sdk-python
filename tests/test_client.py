@@ -9,12 +9,8 @@ from typing import cast
 from urllib.parse import urlsplit
 
 import pytest
-from frontal_sdk import Frontal, FrontalError
-from frontal_sdk.services.agents import AgentsEndpoint
-from frontal_sdk.services.auth import AuthEndpoint
-from frontal_sdk.services.blob import BlobEndpoint
-from frontal_sdk.utils import ClientConfig, HttpClient, MultipartPart
-from frontal_sdk.utils.operation import Operation
+from frontal_sdk import Frontal, FrontalError, MultipartPart
+from frontal_sdk.core import ClientConfig, HttpClient, Operation
 
 
 class ApiHandler(BaseHTTPRequestHandler):
@@ -89,15 +85,14 @@ def api_server() -> tuple[str, ThreadingHTTPServer]:
     server.server_close()
 
 
-def test_service_calls_use_auth_query_and_encoded_path(
+def test_resource_method_uses_auth_query_and_encoded_path(
     api_server: tuple[str, ThreadingHTTPServer],
 ) -> None:
     base_url, _server = api_server
     client = Frontal("frt_local_key", base_url=base_url, max_retries=1)
 
-    response = client.agents.call(
-        AgentsEndpoint.GET_AGENTS_PARAM_1,
-        path_params=("agent/one",),
+    response = client.agents.get_agents_by_param_1(
+        "agent/one",
         query={"include_runs": True},
     )
 
@@ -108,14 +103,13 @@ def test_service_calls_use_auth_query_and_encoded_path(
     assert client_text == "/v1"
 
 
-def test_post_serializes_json_and_uses_catalogued_operation(
+def test_resource_post_serializes_json_body(
     api_server: tuple[str, ThreadingHTTPServer],
 ) -> None:
     base_url, _server = api_server
     client = Frontal("frt_local_key", base_url=base_url)
 
-    result = client.auth.call(
-        AuthEndpoint.POST_AUTH_SIGNUP,
+    result = client.auth.post_auth_signup(
         body={"email": "person@example.com", "metadata": {"source": "test"}},
     )
 
@@ -134,7 +128,7 @@ def test_get_retries_transient_server_errors(
     base_url, _server = api_server
     client = Frontal("frt_local_key", base_url=base_url, max_retries=1)
 
-    result = client.agents.call(AgentsEndpoint.GET_AGENTS)
+    result = client.agents.get_agents()
 
     assert cast(dict[str, object], result)["path"] == "/v1/agents"
     assert ApiHandler.retry_calls == 1
@@ -158,8 +152,9 @@ def test_multipart_upload_and_raw_binary_response(
     base_url, _server = api_server
     client = Frontal("frt_local_key", base_url=base_url)
 
-    upload = client.blob.upload(
-        BlobEndpoint.POST_FORM_DATA_BLOB_OBJECT_PARAM_1_PARAM_2,
+    upload = client.blob.upload_blob_object_by_param_1_by_param_2(
+        "reports",
+        "report.txt",
         [
             MultipartPart(
                 "file",
@@ -168,11 +163,12 @@ def test_multipart_upload_and_raw_binary_response(
                 content_type="text/plain",
             )
         ],
-        path_params=("reports", "report.txt"),
         fields={"cacheControl": "3600"},
     )
-    downloaded = client.blob.request_bytes(
-        BlobEndpoint.GET_BLOB_OBJECT_PARAM_1_PARAM_2,
+    downloaded = HttpClient(
+        ClientConfig("frt_local_key", base_url=base_url)
+    ).request_bytes(
+        Operation("GETRAW", "/blob/object/{param}/{param}"),
         path_params=("reports", "report.txt"),
     )
 
@@ -188,12 +184,7 @@ def test_sse_stream_is_parsed(api_server: tuple[str, ThreadingHTTPServer]) -> No
     base_url, _server = api_server
     client = Frontal("frt_local_key", base_url=base_url)
 
-    events = list(
-        client.agents.stream(
-            AgentsEndpoint.STREAM_AGENTS_RUNS_PARAM_1_STREAM,
-            path_params=("run_1",),
-        )
-    )
+    events = list(client.agents.stream_agents_runs_by_param_1_stream("run_1"))
 
     assert [(event.event, event.id, event.data) for event in events] == [
         ("state", "evt_1", {"ready": True})

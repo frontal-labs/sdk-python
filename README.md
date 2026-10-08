@@ -4,20 +4,24 @@
 
 **Frontal client library for Python.**
 
-The Python SDK provides a shared authenticated HTTP transport, a unified `Frontal` client, and endpoint catalogs for all REST service packages. The transport handles timeouts, safe GET retries, structured API errors, JSON, multipart uploads, raw responses, and server-sent events.
+The Python SDK provides a unified `Frontal` client with typed resource methods for every operation in the committed endpoint inventory. The shared transport handles timeouts, safe GET retries, structured API errors, JSON, multipart uploads, raw responses, and server-sent events. Public APIs are typed and the distribution includes a `py.typed` marker for downstream type checkers.
 
-> **Current status:** the package-level client, shared HTTP runtime, service clients, endpoint catalogs, and local-server tests are present. Service clients currently dispatch through typed endpoint catalogs; dedicated service request/response models are still to come. The contract snapshots are the source of endpoint shapes.
+> **Current status:** resource methods cover all 370 operations in `contracts/sdk-endpoints.json`. Request and response payloads use the typed JSON boundary because the committed inventory does not include operation-specific schemas for these endpoints.
+
+The client accepts an explicit API key or can read `FRONTAL_API_KEY` and `FRONTAL_API_URL` from the environment. Configuration is validated when the client is created; custom headers can be supplied as any read-only or mutable mapping and are copied into the client configuration.
 
 ## Repository map
 
 | Path | Purpose |
 | --- | --- |
-| `frontal_sdk/` | Installable Python package with a unified client, shared utilities, and service subpackages |
+| `frontal_sdk/core/` | Client configuration, HTTP transport, errors, and operation descriptors |
+| `frontal_sdk/models/` | JSON boundary types, query parameters, uploads, and server events |
+| `frontal_sdk/resources/` | Typed resource methods grouped by API domain |
 | `tests/` | Pytest coverage for the shared client and HTTP transport |
 | `contracts/` | OpenAPI snapshots, endpoint inventory, and this repository's conformance reports |
-| `docs/` | Python architecture, service, onboarding, testing, and release guidance |
+| `docs/` | Python architecture, resource, onboarding, testing, and release guidance |
 | `examples/` | Python integration guide and runnable examples |
-| `templates/` | Python application starter layouts |
+| `templates/` | Python-first starter projects for CLI, batch, and asyncio setups |
 | `scripts/` | Contract and documentation maintenance utilities |
 | `.github/` | Python CI, security analysis, and contribution templates |
 
@@ -33,15 +37,15 @@ The package is not published yet. After release, install it with `python -m pip 
 
 ## Quickstart
 
-Set `FRONTAL_API_KEY` in the process environment, then use the package-level client and a service endpoint:
+Set `FRONTAL_API_KEY` in the process environment, then use the package-level client and a resource method:
 
 ```python
 from frontal_sdk import Frontal
-from frontal_sdk.services.ai import AiEndpoint
-
 client = Frontal.from_env()
-health = client.ai.call(AiEndpoint.GET_HEALTH)
+health = client.ai.get_health()
 ```
+
+Resource methods accept `query=` for URL parameters, `body=` for JSON request bodies, and explicit arguments for path placeholders. For example, `client.agents.get_agents_by_param_1("agent_123")` reads one agent.
 
 ## Development
 

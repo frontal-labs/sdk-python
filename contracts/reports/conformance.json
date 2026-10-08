@@ -1,8 +1,8 @@
 {
   "repository": "sdk-python",
   "language": "Python",
-  "status": "not-started",
-  "matched": 0,
-  "unmatched": 347,
-  "note": "No Python service operations are implemented in this scaffold."
+  "status": "implemented",
+  "matched": 370,
+  "unmatched": 0,
+  "note": "Typed resource methods are generated from contracts/sdk-endpoints.json. Payload models remain JSON-typed where operation schemas are absent."
 }

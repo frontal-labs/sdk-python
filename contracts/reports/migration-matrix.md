@@ -1,11 +1,11 @@
-# Python SDK migration matrix
+# Python SDK endpoint coverage
 
-_Status: not started. This report measures source code in `sdk-python` only._
+_Status: endpoint methods generated from the committed SDK endpoint inventory._
 
 | Metric | Value |
 | --- | ---: |
-| Implemented endpoints | 0 |
-| Contract endpoint entries | 347 |
-| Coverage | 0% |
+| Implemented endpoint methods | 370 |
+| Contract endpoint entries | 370 |
+| Coverage | 100% |
 
-Regenerate this report from the Python service modules after operations are implemented. Reports from other language SDKs are not evidence of this repository's coverage.
+Method and path coverage is complete for `contracts/sdk-endpoints.json`. Request and response models remain JSON-typed because that inventory does not include operation-specific payload schemas.

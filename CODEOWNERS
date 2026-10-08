@@ -3,6 +3,6 @@
 /contracts/ @sdk-team/maintainers
 /docs/ @sdk-team/maintainers
 /frontal_sdk/client.py @sdk-team/core
-/frontal_sdk/utils/ @sdk-team/core
-/frontal_sdk/services/ @sdk-team/maintainers
-/frontal_sdk/services/base.py @sdk-team/core
+/frontal_sdk/core/ @sdk-team/core
+/frontal_sdk/models/ @sdk-team/maintainers
+/frontal_sdk/resources/ @sdk-team/maintainers

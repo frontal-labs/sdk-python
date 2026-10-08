@@ -1,32 +1,43 @@
-"""Unified Frontal API client."""
+"""Unified synchronous client for the Frontal API."""
 
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 
-from frontal_sdk.services.agents import AgentsClient
-from frontal_sdk.services.ai import AiClient
-from frontal_sdk.services.audit import AuditClient
-from frontal_sdk.services.auth import AuthClient
-from frontal_sdk.services.billing import BillingClient
-from frontal_sdk.services.blob import BlobClient
-from frontal_sdk.services.connectors import ConnectorsClient
-from frontal_sdk.services.data import DataClient
-from frontal_sdk.services.governance import GovernanceClient
-from frontal_sdk.services.lineage import LineageClient
-from frontal_sdk.services.observability import ObservabilityClient
-from frontal_sdk.services.ontology import OntologyClient
-from frontal_sdk.services.pipelines import PipelinesClient
-from frontal_sdk.services.sandbox import SandboxClient
-from frontal_sdk.services.schedules import SchedulesClient
-from frontal_sdk.services.webhooks import WebhooksClient
-from frontal_sdk.services.workflows import WorkflowsClient
-from frontal_sdk.utils.config import ClientConfig
-from frontal_sdk.utils.http import HttpClient
+from frontal_sdk.core.config import ClientConfig
+from frontal_sdk.core.http import HttpClient
+from frontal_sdk.resources import (
+    AI,
+    Agents,
+    Audit,
+    Auth,
+    Billing,
+    Blob,
+    Connectors,
+    Data,
+    Governance,
+    Lineage,
+    Observability,
+    Ontology,
+    Pipelines,
+    Sandbox,
+    Schedules,
+    Webhooks,
+    Workflows,
+)
 
 
 class Frontal:
-    """Own one authenticated HTTP client and its service namespaces."""
+    """Authenticated API client with typed resource namespaces.
+
+    Args:
+        api_key: Frontal API key.
+        base_url: API base URL, including an optional version prefix.
+        timeout: Per-request timeout in seconds.
+        max_retries: Maximum retries for retryable GET responses.
+        headers: Additional headers sent with every request.
+    """
 
     def __init__(
         self,
@@ -35,7 +46,7 @@ class Frontal:
         base_url: str = "https://api.frontal.dev/v1",
         timeout: float = 30.0,
         max_retries: int = 2,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
     ) -> None:
         config = ClientConfig(
             api_key=api_key,
@@ -44,28 +55,28 @@ class Frontal:
             max_retries=max_retries,
             headers=headers or {},
         )
-        self._http = HttpClient(config)
-        self.agents = AgentsClient(self._http)
-        self.ai = AiClient(self._http)
-        self.audit = AuditClient(self._http)
-        self.auth = AuthClient(self._http)
-        self.billing = BillingClient(self._http)
-        self.blob = BlobClient(self._http)
-        self.connectors = ConnectorsClient(self._http)
-        self.data = DataClient(self._http)
-        self.governance = GovernanceClient(self._http)
-        self.lineage = LineageClient(self._http)
-        self.observability = ObservabilityClient(self._http)
-        self.ontology = OntologyClient(self._http)
-        self.pipelines = PipelinesClient(self._http)
-        self.sandbox = SandboxClient(self._http)
-        self.schedules = SchedulesClient(self._http)
-        self.webhooks = WebhooksClient(self._http)
-        self.workflows = WorkflowsClient(self._http)
+        http = HttpClient(config)
+        self.agents = Agents(http)
+        self.ai = AI(http)
+        self.audit = Audit(http)
+        self.auth = Auth(http)
+        self.billing = Billing(http)
+        self.blob = Blob(http)
+        self.connectors = Connectors(http)
+        self.data = Data(http)
+        self.governance = Governance(http)
+        self.lineage = Lineage(http)
+        self.observability = Observability(http)
+        self.ontology = Ontology(http)
+        self.pipelines = Pipelines(http)
+        self.sandbox = Sandbox(http)
+        self.schedules = Schedules(http)
+        self.webhooks = Webhooks(http)
+        self.workflows = Workflows(http)
 
     @classmethod
     def from_env(cls) -> Frontal:
-        """Create a client from FRONTAL_API_KEY and optional FRONTAL_API_URL."""
+        """Create a client from ``FRONTAL_API_KEY`` and optional ``FRONTAL_API_URL``."""
         api_key = os.environ.get("FRONTAL_API_KEY")
         if not api_key:
             raise ValueError("FRONTAL_API_KEY is required")

@@ -13,10 +13,6 @@
       "title": "PULL REQUEST TEMPLATE"
     },
     {
-      "path": ".pytest_cache/README.md",
-      "title": "README"
-    },
-    {
       "path": "AGENTS.md",
       "title": "AGENTS"
     },
@@ -89,16 +85,16 @@
       "title": "RELEASING"
     },
     {
+      "path": "docs/RESOURCES.md",
+      "title": "RESOURCES"
+    },
+    {
       "path": "docs/ROADMAP.md",
       "title": "ROADMAP"
     },
     {
       "path": "docs/SECURITY.md",
       "title": "SECURITY"
-    },
-    {
-      "path": "docs/SERVICES.md",
-      "title": "SERVICES"
     },
     {
       "path": "docs/TESTING.md",
@@ -119,6 +115,22 @@
     {
       "path": "skills/frontal-sdk/SKILL.md",
       "title": "SKILL"
+    },
+    {
+      "path": "templates/README.md",
+      "title": "README"
+    },
+    {
+      "path": "templates/async-client/README.md",
+      "title": "README"
+    },
+    {
+      "path": "templates/batch-job/README.md",
+      "title": "README"
+    },
+    {
+      "path": "templates/cli/README.md",
+      "title": "README"
     },
     {
       "path": "tests/README.md",

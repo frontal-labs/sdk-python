@@ -5,7 +5,7 @@ description: Guidance for adding or reviewing integrations using the Frontal Pyt
 
 # Frontal Python SDK
 
-The package-level client, shared runtime primitives, service clients, and endpoint catalogs are implemented. Check the Python source before using an operation; an endpoint in `contracts/` does not guarantee a dedicated convenience method exists. Follow the idioms and toolchain documented in this repository.
+The package-level client, shared core runtime, models, and resource methods are implemented. Resource methods are generated from `contracts/sdk-endpoints.json`; regenerate them with `python3 scripts/generate_resources.py` after contract changes. Follow the package structure and toolchain documented in this repository.
 
 ## Configuration
 
@@ -13,4 +13,4 @@ Use `Frontal.from_env()` to read `FRONTAL_API_KEY` and optional `FRONTAL_API_URL
 
 ## Modules
 
-See [the architecture guide](../../docs/ARCHITECTURE.md) and [service inventory](../../docs/SERVICES.md).
+See [the architecture guide](../../docs/ARCHITECTURE.md) and [resource guide](../../docs/RESOURCES.md).
