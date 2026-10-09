@@ -29,9 +29,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.command == "health":
                 result = client.ai.health()
             elif args.command == "agents":
-                result = client.agents.get_agents()
+                result = client.agents.list()
             else:
-                result = client.agents.get_agents_by_param_1(args.agent_id)
+                result = client.agents.get(id=args.agent_id)
     except FrontalError as error:
         print(f"Frontal API request failed: {error}", file=sys.stderr)
         return 1

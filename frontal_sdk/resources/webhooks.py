@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Generic
 
 from frontal_sdk.core.operation import Operation
-from frontal_sdk.models import QueryParams, RequestBody
+from frontal_sdk.models import QueryParams
+from frontal_sdk.models.requests import UNSET, RequestBodyInput
 from frontal_sdk.resources._base import (
     APIResource,
     BytesResultT,
@@ -20,17 +21,17 @@ class Webhooks(
 ):
     """Methods for the webhooks API endpoints."""
 
-    def delete_webhooks_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def delete_webhook(
+        self, webhook_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call DELETE /webhooks/{param}."""
         return self._request(
             Operation("DELETE", "/webhooks/{param}"),
-            path_params=(param_1,),
+            path_params=(webhook_id,),
             query=query,
         )
 
-    def get_webhooks(self, *, query: QueryParams | None = None) -> JSONResultT:
+    def list_webhooks(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /webhooks."""
         return self._request(
             Operation("GET", "/webhooks"),
@@ -38,19 +39,17 @@ class Webhooks(
             query=query,
         )
 
-    def get_webhooks_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_webhook(
+        self, webhook_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /webhooks/{param}."""
         return self._request(
             Operation("GET", "/webhooks/{param}"),
-            path_params=(param_1,),
+            path_params=(webhook_id,),
             query=query,
         )
 
-    def get_webhooks_deliveries(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_deliveries(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /webhooks/deliveries."""
         return self._request(
             Operation("GET", "/webhooks/deliveries"),
@@ -58,17 +57,17 @@ class Webhooks(
             query=query,
         )
 
-    def get_webhooks_deliveries_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_delivery(
+        self, delivery_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /webhooks/deliveries/{param}."""
         return self._request(
             Operation("GET", "/webhooks/deliveries/{param}"),
-            path_params=(param_1,),
+            path_params=(delivery_id,),
             query=query,
         )
 
-    def get_webhooks_stats(self, *, query: QueryParams | None = None) -> JSONResultT:
+    def list_stats(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /webhooks/stats."""
         return self._request(
             Operation("GET", "/webhooks/stats"),
@@ -76,8 +75,8 @@ class Webhooks(
             query=query,
         )
 
-    def post_webhooks(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_webhook(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /webhooks."""
         return self._request(
@@ -87,47 +86,47 @@ class Webhooks(
             body=body,
         )
 
-    def post_webhooks_by_param_1_rotate_secret(
+    def rotate_secret_webhook(
         self,
-        param_1: str,
+        webhook_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /webhooks/{param}/rotate-secret."""
         return self._request(
             Operation("POST", "/webhooks/{param}/rotate-secret"),
-            path_params=(param_1,),
+            path_params=(webhook_id,),
             query=query,
             body=body,
         )
 
-    def post_webhooks_deliveries_by_param_1_retry(
+    def retry_delivery(
         self,
-        param_1: str,
+        delivery_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /webhooks/deliveries/{param}/retry."""
         return self._request(
             Operation("POST", "/webhooks/deliveries/{param}/retry"),
-            path_params=(param_1,),
+            path_params=(delivery_id,),
             query=query,
             body=body,
         )
 
-    def put_webhooks_by_param_1(
+    def update_webhook(
         self,
-        param_1: str,
+        webhook_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call PUT /webhooks/{param}."""
         return self._request(
             Operation("PUT", "/webhooks/{param}"),
-            path_params=(param_1,),
+            path_params=(webhook_id,),
             query=query,
             body=body,
         )

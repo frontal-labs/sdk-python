@@ -15,6 +15,7 @@ class _ErrorContext(TypedDict, total=False):
     status_code: int | None
     details: JSONValue
     fields: list[ErrorField] | None
+    safe_to_retry: bool
 
 
 class FrontalError(Exception):
@@ -27,7 +28,8 @@ class FrontalError(Exception):
         code: str | None = None,
         request_id: str | None = None,
         status_code: int | None = None,
-        retryable: bool | None = None,
+        transient: bool | None = None,
+        safe_to_retry: bool = False,
         details: JSONValue = None,
         fields: list[ErrorField] | None = None,
     ) -> None:
@@ -35,9 +37,10 @@ class FrontalError(Exception):
         self.code = code or "FRONTAL_ERROR"
         self.request_id = request_id
         self.status_code = status_code
-        self.retryable = (
-            status_code in _RETRYABLE_STATUS if retryable is None else retryable
+        self.transient = (
+            status_code in _RETRYABLE_STATUS if transient is None else transient
         )
+        self.safe_to_retry = safe_to_retry
         self.details = details
         self.fields = fields or []
 
@@ -67,13 +70,15 @@ class RateLimitError(FrontalError):
         status_code: int | None = 429,
         details: JSONValue = None,
         fields: list[ErrorField] | None = None,
+        safe_to_retry: bool = False,
     ) -> None:
         super().__init__(
             message,
             code=code,
             request_id=request_id,
             status_code=status_code,
-            retryable=True,
+            transient=True,
+            safe_to_retry=safe_to_retry,
             details=details,
             fields=fields,
         )
@@ -99,13 +104,15 @@ class NetworkError(FrontalError):
         request_id: str | None = None,
         status_code: int | None = None,
         details: JSONValue = None,
+        safe_to_retry: bool = False,
     ) -> None:
         super().__init__(
             message,
             code=code,
             request_id=request_id,
             status_code=status_code,
-            retryable=True,
+            transient=True,
+            safe_to_retry=safe_to_retry,
             details=details,
         )
 
@@ -123,6 +130,7 @@ def error_for_status(
     details: JSONValue = None,
     fields: list[ErrorField] | None = None,
     retry_after: float | None = None,
+    safe_to_retry: bool = False,
 ) -> FrontalError:
     """Create the public error subtype corresponding to an HTTP status."""
     arguments: _ErrorContext = {
@@ -131,6 +139,7 @@ def error_for_status(
         "status_code": status_code,
         "details": details,
         "fields": fields,
+        "safe_to_retry": safe_to_retry,
     }
     if status_code in {401, 403}:
         return AuthenticationError(message, **arguments)

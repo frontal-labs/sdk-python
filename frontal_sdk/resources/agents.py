@@ -21,12 +21,13 @@ from frontal_sdk.models import (
     JSONValue,
     MemoryConfig,
     QueryParams,
-    RequestBody,
     RetryConfig,
 )
+from frontal_sdk.models.requests import UNSET, RequestBodyInput
 from frontal_sdk.resources._base import (
     APIResource,
     BytesResultT,
+    HTTPTransport,
     JSONResultT,
     StreamResultT,
 )
@@ -38,17 +39,24 @@ class Agents(
 ):
     """Methods for the agents API endpoints."""
 
-    def delete_agents_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def __init__(
+        self, http: HTTPTransport[JSONResultT, BytesResultT, StreamResultT]
+    ) -> None:
+        super().__init__(http)
+        self.runs = AgentRuns(self)
+        self.versions = AgentVersions(self)
+
+    def _delete_agent(
+        self, agent_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call DELETE /agents/{param}."""
         return self._request(
             Operation("DELETE", "/agents/{param}"),
-            path_params=(param_1,),
+            path_params=(agent_id,),
             query=query,
         )
 
-    def get_agents(self, *, query: QueryParams | None = None) -> JSONResultT:
+    def _list_agents(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /agents."""
         return self._request(
             Operation("GET", "/agents"),
@@ -56,37 +64,37 @@ class Agents(
             query=query,
         )
 
-    def get_agents_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def _get_agent(
+        self, agent_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /agents/{param}."""
         return self._request(
             Operation("GET", "/agents/{param}"),
-            path_params=(param_1,),
+            path_params=(agent_id,),
             query=query,
         )
 
-    def get_agents_by_param_1_runs(
-        self, param_1: str, *, query: QueryParams | None = None
+    def _list_agent_runs(
+        self, agent_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /agents/{param}/runs."""
         return self._request(
             Operation("GET", "/agents/{param}/runs"),
-            path_params=(param_1,),
+            path_params=(agent_id,),
             query=query,
         )
 
-    def get_agents_by_param_1_versions(
-        self, param_1: str, *, query: QueryParams | None = None
+    def _list_agent_versions(
+        self, agent_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /agents/{param}/versions."""
         return self._request(
             Operation("GET", "/agents/{param}/versions"),
-            path_params=(param_1,),
+            path_params=(agent_id,),
             query=query,
         )
 
-    def get_agents_health(self, *, query: QueryParams | None = None) -> JSONResultT:
+    def _get_agents_health(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /agents/health."""
         return self._request(
             Operation("GET", "/agents/health"),
@@ -94,28 +102,26 @@ class Agents(
             query=query,
         )
 
-    def get_agents_runs_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def _get_run(self, run_id: str, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /agents/runs/{param}."""
         return self._request(
             Operation("GET", "/agents/runs/{param}"),
-            path_params=(param_1,),
+            path_params=(run_id,),
             query=query,
         )
 
-    def get_agents_runs_by_param_1_conversation(
-        self, param_1: str, *, query: QueryParams | None = None
+    def _get_run_conversation(
+        self, run_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /agents/runs/{param}/conversation."""
         return self._request(
             Operation("GET", "/agents/runs/{param}/conversation"),
-            path_params=(param_1,),
+            path_params=(run_id,),
             query=query,
         )
 
-    def post_agents(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def _create_agent(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /agents."""
         return self._request(
@@ -125,58 +131,58 @@ class Agents(
             body=body,
         )
 
-    def post_agents_by_param_1_rollback(
+    def _rollback_agent(
         self,
-        param_1: str,
+        agent_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /agents/{param}/rollback."""
         return self._request(
             Operation("POST", "/agents/{param}/rollback"),
-            path_params=(param_1,),
+            path_params=(agent_id,),
             query=query,
             body=body,
         )
 
-    def post_agents_by_param_1_runs(
+    def _create_run_for_agent(
         self,
-        param_1: str,
+        agent_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /agents/{param}/runs."""
         return self._request(
             Operation("POST", "/agents/{param}/runs"),
-            path_params=(param_1,),
+            path_params=(agent_id,),
             query=query,
             body=body,
         )
 
-    def put_agents_by_param_1(
+    def _update_agent(
         self,
-        param_1: str,
+        agent_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call PUT /agents/{param}."""
         return self._request(
             Operation("PUT", "/agents/{param}"),
-            path_params=(param_1,),
+            path_params=(agent_id,),
             query=query,
             body=body,
         )
 
-    def stream_agents_runs_by_param_1_stream(
-        self, param_1: str, *, query: QueryParams | None = None
+    def _stream_run(
+        self, run_id: str, *, query: QueryParams | None = None
     ) -> StreamResultT:
         """Call STREAM /agents/runs/{param}/stream."""
         return self._stream(
             Operation("STREAM", "/agents/runs/{param}/stream"),
-            path_params=(param_1,),
+            path_params=(run_id,),
             query=query,
         )
 
@@ -201,43 +207,97 @@ class Agents(
         """Create an accessor for one agent and its runs."""
         return AgentAccessor(self, agent_id, approve_when, approvers)
 
-    def list(
-        self,
-        *,
-        status: str | None = None,
-        trigger: str | None = None,
-        limit: int | None = None,
-        cursor: str | None = None,
-    ) -> JSONResultT:
-        """List agents with the filters and cursor used by the TypeScript SDK."""
-        query: dict[str, str | int] = {}
-        if status is not None:
-            query["status"] = status
-        if trigger is not None:
-            query["trigger"] = trigger
-        if limit is not None:
-            query["limit"] = limit
-        if cursor is not None:
-            query["cursor"] = cursor
-        return self.get_agents(query=query)
+    def get(self, id: str, *, query: QueryParams | None = None) -> JSONResultT:
+        """Retrieve one agent."""
+        return self._get_agent(id, query=query)
+
+    def list(self, *, query: QueryParams | None = None) -> JSONResultT:
+        """List agents using the endpoint's query parameters."""
+        return self._list_agents(query=query)
 
     def create(
-        self, definition: AgentDefinition | Mapping[str, JSONValue]
+        self,
+        *,
+        body: RequestBodyInput = UNSET,
+        query: QueryParams | None = None,
     ) -> JSONResultT:
-        """Validate and create an agent definition."""
-        model = (
-            definition
-            if isinstance(definition, AgentDefinition)
-            else AgentDefinition.model_validate(definition)
-        )
-        body = cast(
-            JSONValue, model.model_dump(mode="json", by_alias=True, exclude_none=True)
-        )
-        return self.post_agents(body=body)
+        """Create one agent, serializing an AgentDefinition when provided."""
+        if isinstance(body, AgentDefinition):
+            body = cast(
+                JSONValue,
+                body.model_dump(mode="json", by_alias=True, exclude_none=True),
+            )
+        return self._create_agent(body=body, query=query)
+
+    def update(
+        self,
+        id: str,
+        *,
+        body: RequestBodyInput = UNSET,
+        query: QueryParams | None = None,
+    ) -> JSONResultT:
+        """Replace an agent definition."""
+        return self._update_agent(id, body=body, query=query)
+
+    def delete(self, id: str, *, query: QueryParams | None = None) -> JSONResultT:
+        """Delete one agent."""
+        return self._delete_agent(id, query=query)
+
+    def rollback(
+        self,
+        id: str,
+        *,
+        body: RequestBodyInput = UNSET,
+        query: QueryParams | None = None,
+    ) -> JSONResultT:
+        """Roll back an agent to a prior version."""
+        return self._rollback_agent(id, body=body, query=query)
 
     def health(self) -> JSONResultT:
         """Check the agent service health."""
-        return self.get_agents_health()
+        return self._get_agents_health()
+
+
+class AgentRuns(Generic[JSONResultT, BytesResultT, StreamResultT]):
+    """Run operations scoped under ``client.agents.runs``."""
+
+    def __init__(
+        self, agents: Agents[JSONResultT, BytesResultT, StreamResultT]
+    ) -> None:
+        self._agents = agents
+
+    def list(self, *, agent_id: str, query: QueryParams | None = None) -> JSONResultT:
+        return self._agents._list_agent_runs(agent_id, query=query)
+
+    def create(
+        self,
+        *,
+        agent_id: str,
+        body: RequestBodyInput = UNSET,
+        query: QueryParams | None = None,
+    ) -> JSONResultT:
+        return self._agents._create_run_for_agent(agent_id, body=body, query=query)
+
+    def get(self, id: str, *, query: QueryParams | None = None) -> JSONResultT:
+        return self._agents._get_run(id, query=query)
+
+    def conversation(self, id: str, *, query: QueryParams | None = None) -> JSONResultT:
+        return self._agents._get_run_conversation(id, query=query)
+
+    def stream(self, id: str, *, query: QueryParams | None = None) -> StreamResultT:
+        return self._agents._stream_run(id, query=query)
+
+
+class AgentVersions(Generic[JSONResultT, BytesResultT, StreamResultT]):
+    """Version operations scoped under ``client.agents.versions``."""
+
+    def __init__(
+        self, agents: Agents[JSONResultT, BytesResultT, StreamResultT]
+    ) -> None:
+        self._agents = agents
+
+    def list(self, *, agent_id: str, query: QueryParams | None = None) -> JSONResultT:
+        return self._agents._list_agent_versions(agent_id, query=query)
 
 
 class AgentBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
@@ -443,7 +503,7 @@ class AgentBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
 
     def create(self) -> JSONResultT:
         """Validate and create the agent on the configured client."""
-        return self._agents.create(self.to_model())
+        return self._agents.create(body=self.to_model())
 
 
 class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
@@ -466,19 +526,19 @@ class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         return self._approve_when(state) if self._approve_when is not None else False
 
     def get(self) -> JSONResultT:
-        return self._agents.get_agents_by_param_1(self.id)
+        return self._agents.get(id=self.id)
 
     def update(self, definition: Mapping[str, JSONValue]) -> JSONResultT:
-        return self._agents.put_agents_by_param_1(self.id, body=dict(definition))
+        return self._agents.update(id=self.id, body=dict(definition))
 
     def delete(self) -> JSONResultT:
-        return self._agents.delete_agents_by_param_1(self.id)
+        return self._agents.delete(id=self.id)
 
     def rollback(self, *, to_version: int | None = None) -> JSONResultT:
         body: dict[str, JSONValue] = {}
         if to_version is not None:
             body["toVersion"] = to_version
-        return self._agents.post_agents_by_param_1_rollback(self.id, body=body)
+        return self._agents.rollback(self.id, body=body)
 
     def versions(
         self, *, limit: int | None = None, cursor: str | None = None
@@ -488,7 +548,7 @@ class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
             query["limit"] = limit
         if cursor is not None:
             query["cursor"] = cursor
-        return self._agents.get_agents_by_param_1_versions(self.id, query=query)
+        return self._agents.versions.list(agent_id=self.id, query=query)
 
     def runs(
         self,
@@ -509,10 +569,10 @@ class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         ):
             if value is not None:
                 query[key] = value
-        return self._agents.get_agents_by_param_1_runs(self.id, query=query)
+        return self._agents.runs.list(agent_id=self.id, query=query)
 
     def run(self, run_id: str) -> JSONResultT:
-        return self._agents.get_agents_runs_by_param_1(run_id)
+        return self._agents.runs.get(run_id)
 
     def wait_for_completion(
         self,
@@ -555,15 +615,15 @@ class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         return cast(JSONResultT, current)
 
     def conversation(self, run_id: str) -> JSONResultT:
-        return self._agents.get_agents_runs_by_param_1_conversation(run_id)
+        return self._agents.runs.conversation(run_id)
 
     def message(self, event: str, payload: Mapping[str, JSONValue]) -> JSONResultT:
         body: dict[str, JSONValue] = {"event": event, "payload": dict(payload)}
-        return self._agents.post_agents_by_param_1_runs(self.id, body=body)
+        return self._agents.runs.create(agent_id=self.id, body=body)
 
     def watch(self, run_id: str) -> StreamResultT:
         """Watch a run as a sync iterator or async iterator of server events."""
-        return self._agents.stream_agents_runs_by_param_1_stream(run_id)
+        return self._agents.runs.stream(run_id)
 
 
 def _terminal_run(value: JSONValue) -> bool:

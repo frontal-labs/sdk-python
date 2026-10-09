@@ -82,7 +82,8 @@ class Frontal:
 
     ``api_key`` defaults to ``FRONTAL_API_KEY``. The base URL, environment,
     and debug setting also read ``FRONTAL_API_URL``, ``FRONTAL_ENV``, and
-    ``FRONTAL_DEBUG`` when their matching arguments are omitted.
+    ``FRONTAL_DEBUG`` when their matching arguments are omitted. A supplied
+    ``http_client`` remains caller-owned and keeps its own timeout configuration.
     """
 
     def __init__(
@@ -153,7 +154,11 @@ class Frontal:
 
 
 class AsyncFrontal:
-    """Asynchronous API client with the same typed service namespaces."""
+    """Async client with matching typed services.
+
+    A supplied ``http_client`` remains caller-owned and keeps its own timeout
+    configuration.
+    """
 
     def __init__(
         self,

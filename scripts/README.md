@@ -6,6 +6,14 @@ documentation and writes `docs/mcp.json` plus the root `mcp.json`. Both are
 repository maintenance utilities written in Python 3's standard library; they
 do not affect the SDK runtime or package dependencies.
 
+`check_distribution.py` validates built wheel metadata, the `py.typed` marker,
+and importability from the wheel. `benchmark_transport.py` measures mocked JSON
+request overhead without network latency:
+
+```bash
+python scripts/benchmark_transport.py --iterations 1000
+```
+
 Run them directly:
 
 ```bash

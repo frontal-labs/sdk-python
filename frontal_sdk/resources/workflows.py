@@ -13,12 +13,12 @@ from frontal_sdk.core.polling import async_poll_until, poll_until
 from frontal_sdk.models import (
     JSONValue,
     QueryParams,
-    RequestBody,
     Workflow,
     WorkflowDefinition,
     WorkflowStep,
     WorkflowTrigger,
 )
+from frontal_sdk.models.requests import UNSET, RequestBodyInput
 from frontal_sdk.resources._base import (
     APIResource,
     BytesResultT,
@@ -44,17 +44,17 @@ class Workflows(
         self.steps = WorkflowSteps(self)
         self.templates = WorkflowTemplates(self)
 
-    def delete_workflows_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def delete_workflow(
+        self, workflow_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call DELETE /workflows/{param}."""
         return self._request(
             Operation("DELETE", "/workflows/{param}"),
-            path_params=(param_1,),
+            path_params=(workflow_id,),
             query=query,
         )
 
-    def get_workflows(self, *, query: QueryParams | None = None) -> JSONResultT:
+    def list_workflows(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /workflows."""
         return self._request(
             Operation("GET", "/workflows"),
@@ -62,19 +62,17 @@ class Workflows(
             query=query,
         )
 
-    def get_workflows_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_workflow(
+        self, workflow_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /workflows/{param}."""
         return self._request(
             Operation("GET", "/workflows/{param}"),
-            path_params=(param_1,),
+            path_params=(workflow_id,),
             query=query,
         )
 
-    def get_workflows_approvals(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_approvals(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /workflows/approvals."""
         return self._request(
             Operation("GET", "/workflows/approvals"),
@@ -82,19 +80,17 @@ class Workflows(
             query=query,
         )
 
-    def get_workflows_approvals_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_approval(
+        self, approval_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /workflows/approvals/{param}."""
         return self._request(
             Operation("GET", "/workflows/approvals/{param}"),
-            path_params=(param_1,),
+            path_params=(approval_id,),
             query=query,
         )
 
-    def get_workflows_executions(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_executions(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /workflows/executions."""
         return self._request(
             Operation("GET", "/workflows/executions"),
@@ -102,49 +98,47 @@ class Workflows(
             query=query,
         )
 
-    def get_workflows_executions_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_execution(
+        self, execution_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /workflows/executions/{param}."""
         return self._request(
             Operation("GET", "/workflows/executions/{param}"),
-            path_params=(param_1,),
+            path_params=(execution_id,),
             query=query,
         )
 
-    def get_workflows_executions_by_param_1_tasks(
-        self, param_1: str, *, query: QueryParams | None = None
+    def list_execution_tasks(
+        self, execution_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /workflows/executions/{param}/tasks."""
         return self._request(
             Operation("GET", "/workflows/executions/{param}/tasks"),
-            path_params=(param_1,),
+            path_params=(execution_id,),
             query=query,
         )
 
-    def get_workflows_runs_by_param_1_steps(
-        self, param_1: str, *, query: QueryParams | None = None
+    def list_run_steps(
+        self, run_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /workflows/runs/{param}/steps."""
         return self._request(
             Operation("GET", "/workflows/runs/{param}/steps"),
-            path_params=(param_1,),
+            path_params=(run_id,),
             query=query,
         )
 
-    def get_workflows_tasks_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_task(
+        self, task_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /workflows/tasks/{param}."""
         return self._request(
             Operation("GET", "/workflows/tasks/{param}"),
-            path_params=(param_1,),
+            path_params=(task_id,),
             query=query,
         )
 
-    def get_workflows_templates(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_templates(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /workflows/templates."""
         return self._request(
             Operation("GET", "/workflows/templates"),
@@ -152,33 +146,33 @@ class Workflows(
             query=query,
         )
 
-    def get_workflows_templates_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_template(
+        self, template_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /workflows/templates/{param}."""
         return self._request(
             Operation("GET", "/workflows/templates/{param}"),
-            path_params=(param_1,),
+            path_params=(template_id,),
             query=query,
         )
 
-    def patch_workflows_by_param_1(
+    def update_workflow(
         self,
-        param_1: str,
+        workflow_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call PATCH /workflows/{param}."""
         return self._request(
             Operation("PATCH", "/workflows/{param}"),
-            path_params=(param_1,),
+            path_params=(workflow_id,),
             query=query,
             body=body,
         )
 
-    def post_workflows(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_workflow(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /workflows."""
         return self._request(
@@ -188,98 +182,98 @@ class Workflows(
             body=body,
         )
 
-    def post_workflows_by_param_1_archive(
+    def archive_workflow(
         self,
-        param_1: str,
+        workflow_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /workflows/{param}/archive."""
         return self._request(
             Operation("POST", "/workflows/{param}/archive"),
-            path_params=(param_1,),
+            path_params=(workflow_id,),
             query=query,
             body=body,
         )
 
-    def post_workflows_by_param_1_publish(
+    def publish_workflow(
         self,
-        param_1: str,
+        workflow_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /workflows/{param}/publish."""
         return self._request(
             Operation("POST", "/workflows/{param}/publish"),
-            path_params=(param_1,),
+            path_params=(workflow_id,),
             query=query,
             body=body,
         )
 
-    def post_workflows_by_param_1_restore(
+    def restore_workflow(
         self,
-        param_1: str,
+        workflow_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /workflows/{param}/restore."""
         return self._request(
             Operation("POST", "/workflows/{param}/restore"),
-            path_params=(param_1,),
+            path_params=(workflow_id,),
             query=query,
             body=body,
         )
 
-    def post_workflows_by_param_1_versions(
+    def create_version_for_workflow(
         self,
-        param_1: str,
+        workflow_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /workflows/{param}/versions."""
         return self._request(
             Operation("POST", "/workflows/{param}/versions"),
-            path_params=(param_1,),
+            path_params=(workflow_id,),
             query=query,
             body=body,
         )
 
-    def post_workflows_approvals_by_param_1_approve(
+    def approve_approval(
         self,
-        param_1: str,
+        approval_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /workflows/approvals/{param}/approve."""
         return self._request(
             Operation("POST", "/workflows/approvals/{param}/approve"),
-            path_params=(param_1,),
+            path_params=(approval_id,),
             query=query,
             body=body,
         )
 
-    def post_workflows_approvals_by_param_1_reject(
+    def reject_approval(
         self,
-        param_1: str,
+        approval_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /workflows/approvals/{param}/reject."""
         return self._request(
             Operation("POST", "/workflows/approvals/{param}/reject"),
-            path_params=(param_1,),
+            path_params=(approval_id,),
             query=query,
             body=body,
         )
 
-    def post_workflows_executions(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_execution(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /workflows/executions."""
         return self._request(
@@ -289,38 +283,38 @@ class Workflows(
             body=body,
         )
 
-    def post_workflows_tasks_by_param_1_cancel(
+    def cancel_task(
         self,
-        param_1: str,
+        task_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /workflows/tasks/{param}/cancel."""
         return self._request(
             Operation("POST", "/workflows/tasks/{param}/cancel"),
-            path_params=(param_1,),
+            path_params=(task_id,),
             query=query,
             body=body,
         )
 
-    def post_workflows_tasks_by_param_1_retry(
+    def retry_task(
         self,
-        param_1: str,
+        task_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /workflows/tasks/{param}/retry."""
         return self._request(
             Operation("POST", "/workflows/tasks/{param}/retry"),
-            path_params=(param_1,),
+            path_params=(task_id,),
             query=query,
             body=body,
         )
 
-    def post_workflows_templates(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_template(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /workflows/templates."""
         return self._request(
@@ -330,17 +324,17 @@ class Workflows(
             body=body,
         )
 
-    def post_workflows_templates_by_param_1_instantiate(
+    def instantiate_template(
         self,
-        param_1: str,
+        template_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /workflows/templates/{param}/instantiate."""
         return self._request(
             Operation("POST", "/workflows/templates/{param}/instantiate"),
-            path_params=(param_1,),
+            path_params=(template_id,),
             query=query,
             body=body,
         )
@@ -372,7 +366,7 @@ class Workflows(
             query["pageSize"] = limit
         if cursor is not None:
             query["pageToken"] = cursor
-        return self.get_workflows(query=query)
+        return self.list_workflows(query=query)
 
     def create(
         self, definition: WorkflowDefinition | Mapping[str, JSONValue]
@@ -388,7 +382,7 @@ class Workflows(
         }
         if model.description is not None:
             base["description"] = model.description
-        created = self.post_workflows(body=base)
+        created = self.create_workflow(body=base)
         return _flat_map(
             created,
             lambda raw: self._create_version(raw, model, payload),
@@ -402,7 +396,7 @@ class Workflows(
     ) -> JSONResultT:
         workflow_data = _unwrap_record(created, "workflow")
         workflow_id = _resource_id(workflow_data, "workflowId")
-        version_result = self.post_workflows_by_param_1_versions(
+        version_result = self.create_version_for_workflow(
             workflow_id, body={"spec": payload}
         )
         return _map_result(
@@ -417,7 +411,7 @@ class Workflows(
     def _activate_created(self, created: JSONValue) -> JSONResultT:
         workflow_data = _unwrap_record(created, "workflow")
         workflow_id = _resource_id(workflow_data, "workflowId")
-        return self.post_workflows_by_param_1_publish(workflow_id, body={})
+        return self.publish_workflow(workflow_id, body={})
 
 
 def _workflow_definition(
@@ -733,24 +727,22 @@ class WorkflowAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         self.id = workflow_id
 
     def get(self) -> JSONResultT:
-        return self._workflows.get_workflows_by_param_1(self.id)
+        return self._workflows.get_workflow(self.id)
 
     def update(self, definition: Mapping[str, JSONValue]) -> JSONResultT:
-        return self._workflows.patch_workflows_by_param_1(
-            self.id, body=dict(definition)
-        )
+        return self._workflows.update_workflow(self.id, body=dict(definition))
 
     def delete(self) -> JSONResultT:
-        return self._workflows.delete_workflows_by_param_1(self.id)
+        return self._workflows.delete_workflow(self.id)
 
     def activate(self) -> JSONResultT:
-        return self._workflows.post_workflows_by_param_1_publish(self.id, body={})
+        return self._workflows.publish_workflow(self.id, body={})
 
     def archive(self) -> JSONResultT:
-        return self._workflows.post_workflows_by_param_1_archive(self.id, body={})
+        return self._workflows.archive_workflow(self.id, body={})
 
     def restore(self) -> JSONResultT:
-        return self._workflows.post_workflows_by_param_1_restore(self.id, body={})
+        return self._workflows.restore_workflow(self.id, body={})
 
     def executions(
         self,
@@ -761,13 +753,13 @@ class WorkflowAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
     ) -> JSONResultT:
         query = _page_query(status=status, limit=limit, cursor=cursor)
         query["workflowId"] = self.id
-        return self._workflows.get_workflows_executions(query=query)
+        return self._workflows.list_executions(query=query)
 
     def execution(self, execution_id: str) -> JSONResultT:
-        return self._workflows.get_workflows_executions_by_param_1(execution_id)
+        return self._workflows.get_execution(execution_id)
 
     def trigger(self, input: Mapping[str, JSONValue] | None = None) -> JSONResultT:
-        return self._workflows.post_workflows_executions(
+        return self._workflows.create_execution(
             body={"workflowId": self.id, "input": dict(input or {})}
         )
 
@@ -851,24 +843,20 @@ class WorkflowApprovals(Generic[JSONResultT, BytesResultT, StreamResultT]):
         limit: int | None = None,
         cursor: str | None = None,
     ) -> JSONResultT:
-        return self._workflows.get_workflows_approvals(
+        return self._workflows.list_approvals(
             query=_page_query(status=status, limit=limit, cursor=cursor)
         )
 
     def get(self, approval_id: str) -> JSONResultT:
-        return self._workflows.get_workflows_approvals_by_param_1(approval_id)
+        return self._workflows.get_approval(approval_id)
 
     def approve(self, approval_id: str, comment: str | None = None) -> JSONResultT:
         body: dict[str, JSONValue] = {} if comment is None else {"comment": comment}
-        return self._workflows.post_workflows_approvals_by_param_1_approve(
-            approval_id, body=body
-        )
+        return self._workflows.approve_approval(approval_id, body=body)
 
     def reject(self, approval_id: str, comment: str | None = None) -> JSONResultT:
         body: dict[str, JSONValue] = {} if comment is None else {"comment": comment}
-        return self._workflows.post_workflows_approvals_by_param_1_reject(
-            approval_id, body=body
-        )
+        return self._workflows.reject_approval(approval_id, body=body)
 
 
 class WorkflowSteps(Generic[JSONResultT, BytesResultT, StreamResultT]):
@@ -887,21 +875,19 @@ class WorkflowSteps(Generic[JSONResultT, BytesResultT, StreamResultT]):
         limit: int | None = None,
         cursor: str | None = None,
     ) -> JSONResultT:
-        return self._workflows.get_workflows_executions_by_param_1_tasks(
+        return self._workflows.list_execution_tasks(
             execution_id, query=_page_query(status=status, limit=limit, cursor=cursor)
         )
 
     def get_task(self, task_id: str) -> JSONResultT:
-        return self._workflows.get_workflows_tasks_by_param_1(task_id)
+        return self._workflows.get_task(task_id)
 
     def retry_task(self, task_id: str) -> JSONResultT:
-        return self._workflows.post_workflows_tasks_by_param_1_retry(task_id, body={})
+        return self._workflows.retry_task(task_id, body={})
 
     def cancel_task(self, task_id: str, reason: str | None = None) -> JSONResultT:
         body: dict[str, JSONValue] = {} if reason is None else {"reason": reason}
-        return self._workflows.post_workflows_tasks_by_param_1_cancel(
-            task_id, body=body
-        )
+        return self._workflows.cancel_task(task_id, body=body)
 
     def list_run_steps(
         self,
@@ -911,7 +897,7 @@ class WorkflowSteps(Generic[JSONResultT, BytesResultT, StreamResultT]):
         limit: int | None = None,
         cursor: str | None = None,
     ) -> JSONResultT:
-        return self._workflows.get_workflows_runs_by_param_1_steps(
+        return self._workflows.list_run_steps(
             run_id, query=_page_query(status=status, limit=limit, cursor=cursor)
         )
 
@@ -934,10 +920,10 @@ class WorkflowTemplates(Generic[JSONResultT, BytesResultT, StreamResultT]):
         query = _page_query(limit=limit, cursor=cursor)
         if category is not None:
             query["category"] = category
-        return self._workflows.get_workflows_templates(query=query)
+        return self._workflows.list_templates(query=query)
 
     def get(self, template_id: str) -> JSONResultT:
-        return self._workflows.get_workflows_templates_by_param_1(template_id)
+        return self._workflows.get_template(template_id)
 
     def create(
         self,
@@ -959,12 +945,10 @@ class WorkflowTemplates(Generic[JSONResultT, BytesResultT, StreamResultT]):
             body["description"] = description
         if category is not None:
             body["category"] = category
-        return self._workflows.post_workflows_templates(body=body)
+        return self._workflows.create_template(body=body)
 
     def use(self, template_id: str, name: str) -> JSONResultT:
-        return self._workflows.post_workflows_templates_by_param_1_instantiate(
-            template_id, body={"name": name}
-        )
+        return self._workflows.instantiate_template(template_id, body={"name": name})
 
 
 __all__ = [

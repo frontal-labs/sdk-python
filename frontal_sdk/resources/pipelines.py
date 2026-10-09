@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Generic
 
 from frontal_sdk.core.operation import Operation
-from frontal_sdk.models import QueryParams, RequestBody
+from frontal_sdk.models import QueryParams
+from frontal_sdk.models.requests import UNSET, RequestBodyInput
 from frontal_sdk.resources._base import (
     APIResource,
     BytesResultT,
@@ -20,9 +21,7 @@ class Pipelines(
 ):
     """Methods for the pipelines API endpoints."""
 
-    def get_data_pipelines_capabilities(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_capabilities(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/pipelines/capabilities."""
         return self._request(
             Operation("GET", "/data/pipelines/capabilities"),
@@ -50,9 +49,7 @@ class Pipelines(
             query=query,
         )
 
-    def get_data_pipelines_pipeline_runs(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_pipeline_runs(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/pipelines/pipeline-runs."""
         return self._request(
             Operation("GET", "/data/pipelines/pipeline-runs"),
@@ -60,19 +57,15 @@ class Pipelines(
             query=query,
         )
 
-    def get_data_pipelines_pipeline_runs_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def get_run(self, run_id: str, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/pipelines/pipeline-runs/{param}."""
         return self._request(
             Operation("GET", "/data/pipelines/pipeline-runs/{param}"),
-            path_params=(param_1,),
+            path_params=(run_id,),
             query=query,
         )
 
-    def get_data_pipelines_pipelines(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_pipelines(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/pipelines/pipelines."""
         return self._request(
             Operation("GET", "/data/pipelines/pipelines"),
@@ -80,19 +73,17 @@ class Pipelines(
             query=query,
         )
 
-    def get_data_pipelines_pipelines_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_definition(
+        self, definition_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/pipelines/pipelines/{param}."""
         return self._request(
             Operation("GET", "/data/pipelines/pipelines/{param}"),
-            path_params=(param_1,),
+            path_params=(definition_id,),
             query=query,
         )
 
-    def get_data_pipelines_runs(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_runs(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/pipelines/runs."""
         return self._request(
             Operation("GET", "/data/pipelines/runs"),
@@ -100,8 +91,8 @@ class Pipelines(
             query=query,
         )
 
-    def post_data_pipelines_pipelines(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_pipeline(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/pipelines/pipelines."""
         return self._request(
@@ -111,8 +102,8 @@ class Pipelines(
             body=body,
         )
 
-    def post_data_pipelines_runs(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_run(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/pipelines/runs."""
         return self._request(
@@ -122,12 +113,12 @@ class Pipelines(
             body=body,
         )
 
-    def stream_data_pipelines_pipeline_runs_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def stream_data_pipelines_pipeline_runs_by_run_id(
+        self, run_id: str, *, query: QueryParams | None = None
     ) -> StreamResultT:
         """Call STREAM /data/pipelines/pipeline-runs/{param}."""
         return self._stream(
             Operation("STREAM", "/data/pipelines/pipeline-runs/{param}"),
-            path_params=(param_1,),
+            path_params=(run_id,),
             query=query,
         )

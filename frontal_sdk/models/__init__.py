@@ -41,7 +41,6 @@ from frontal_sdk.models.ai import (
     ModerationResult,
     Prompt,
     PromptChain,
-    RegisteredTool,
     RerankDocument,
     RerankOptions,
     RerankResult,
@@ -61,7 +60,14 @@ from frontal_sdk.models.ai import (
 )
 from frontal_sdk.models.http import MultipartPart, ServerEvent
 from frontal_sdk.models.pagination import PageResult, PaginationMeta
-from frontal_sdk.models.requests import QueryParams, QueryValue, RequestBody
+from frontal_sdk.models.requests import (
+    UNSET,
+    QueryParams,
+    QueryValue,
+    RequestBody,
+    RequestBodyInput,
+    Unset,
+)
 from frontal_sdk.models.types import (
     APIModel,
     ErrorField,
@@ -163,13 +169,15 @@ __all__ = [
     "PageResult",
     "Prompt",
     "PromptChain",
-    "RegisteredTool",
     "ParallelStep",
     "ParallelStepConfig",
     "PaginationMeta",
     "QueryParams",
     "QueryValue",
     "RequestBody",
+    "RequestBodyInput",
+    "UNSET",
+    "Unset",
     "RerankDocument",
     "RerankOptions",
     "RerankResult",

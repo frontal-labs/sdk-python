@@ -70,6 +70,41 @@ def documented_operation(function: ast.FunctionDef) -> tuple[str, str] | None:
     return parts[1], parts[2][:-1]
 
 
+def class_operations(
+    path: Path, resource: ast.ClassDef
+) -> tuple[set[tuple[str, str]], list[str]]:
+    operations: set[tuple[str, str]] = set()
+    errors: list[str] = []
+    for function in resource.body:
+        if not isinstance(function, ast.FunctionDef):
+            continue
+        documented = documented_operation(function)
+        if documented is None:
+            continue
+        if "by_param_" in function.name or any(
+            re.fullmatch(r"param_\d+", argument.arg) for argument in function.args.args
+        ):
+            errors.append(
+                f"{path.relative_to(ROOT)}:{function.name} uses a generic "
+                "path parameter name"
+            )
+        actual = operation_calls(function)
+        if len(actual) != 1:
+            errors.append(
+                f"{path.relative_to(ROOT)}:{function.name} must call exactly "
+                "one Operation descriptor"
+            )
+            continue
+        operation = next(iter(actual))
+        if operation != documented:
+            errors.append(
+                f"{path.relative_to(ROOT)}:{function.name} documents "
+                f"{documented} but calls {operation}"
+            )
+        operations.add(operation)
+    return operations, errors
+
+
 def resource_operations(path: Path) -> tuple[set[tuple[str, str]], list[str]]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
     operations: set[tuple[str, str]] = set()
@@ -77,27 +112,34 @@ def resource_operations(path: Path) -> tuple[set[tuple[str, str]], list[str]]:
     for resource in tree.body:
         if not isinstance(resource, ast.ClassDef):
             continue
-        for function in resource.body:
-            if not isinstance(function, ast.FunctionDef):
-                continue
-            documented = documented_operation(function)
-            if documented is None:
-                continue
-            actual = operation_calls(function)
-            if len(actual) != 1:
-                errors.append(
-                    f"{path.relative_to(ROOT)}:{function.name} must call exactly "
-                    "one Operation descriptor"
-                )
-                continue
-            operation = next(iter(actual))
-            if operation != documented:
-                errors.append(
-                    f"{path.relative_to(ROOT)}:{function.name} documents "
-                    f"{documented} but calls {operation}"
-                )
-            operations.add(operation)
+        resource_ops, resource_errors = class_operations(path, resource)
+        operations.update(resource_ops)
+        errors.extend(resource_errors)
     return operations, errors
+
+
+def resource_endpoint_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    return {
+        function.name
+        for resource in tree.body
+        if isinstance(resource, ast.ClassDef)
+        for function in resource.body
+        if isinstance(function, ast.FunctionDef)
+        and documented_operation(function) is not None
+    }
+
+
+def resource_public_method_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    return {
+        function.name
+        for resource in tree.body
+        if isinstance(resource, ast.ClassDef)
+        for function in resource.body
+        if isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and not function.name.startswith("_")
+    }
 
 
 def parse_openapi(path: Path) -> set[tuple[str, str]]:

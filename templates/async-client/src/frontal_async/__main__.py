@@ -20,7 +20,7 @@ async def fetch_agent(
     """Run one native asynchronous SDK request."""
     async with semaphore:
         try:
-            result = await client.agents.get_agents_by_param_1(agent_id)
+            result = await client.agents.get(id=agent_id)
         except FrontalError as error:
             return agent_id, error
         return agent_id, result

@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Generic
 
 from frontal_sdk.core.operation import Operation
-from frontal_sdk.models import QueryParams, RequestBody
+from frontal_sdk.models import QueryParams
+from frontal_sdk.models.requests import UNSET, RequestBodyInput
 from frontal_sdk.resources._base import (
     APIResource,
     BytesResultT,
@@ -20,19 +21,17 @@ class Schedules(
 ):
     """Methods for the schedules API endpoints."""
 
-    def delete_workflows_schedules_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def delete_schedule(
+        self, schedule_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call DELETE /workflows/schedules/{param}."""
         return self._request(
             Operation("DELETE", "/workflows/schedules/{param}"),
-            path_params=(param_1,),
+            path_params=(schedule_id,),
             query=query,
         )
 
-    def get_workflows_schedules(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_schedules(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /workflows/schedules."""
         return self._request(
             Operation("GET", "/workflows/schedules"),
@@ -40,33 +39,33 @@ class Schedules(
             query=query,
         )
 
-    def get_workflows_schedules_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_schedule(
+        self, schedule_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /workflows/schedules/{param}."""
         return self._request(
             Operation("GET", "/workflows/schedules/{param}"),
-            path_params=(param_1,),
+            path_params=(schedule_id,),
             query=query,
         )
 
-    def patch_workflows_schedules_by_param_1(
+    def update_schedule(
         self,
-        param_1: str,
+        schedule_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call PATCH /workflows/schedules/{param}."""
         return self._request(
             Operation("PATCH", "/workflows/schedules/{param}"),
-            path_params=(param_1,),
+            path_params=(schedule_id,),
             query=query,
             body=body,
         )
 
     def post_workflows_cron_parse(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /workflows/cron/parse."""
         return self._request(
@@ -77,7 +76,7 @@ class Schedules(
         )
 
     def post_workflows_cron_validate(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /workflows/cron/validate."""
         return self._request(
@@ -87,8 +86,8 @@ class Schedules(
             body=body,
         )
 
-    def post_workflows_schedules(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_schedule(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /workflows/schedules."""
         return self._request(
@@ -98,47 +97,47 @@ class Schedules(
             body=body,
         )
 
-    def post_workflows_schedules_by_param_1_pause(
+    def pause_schedule(
         self,
-        param_1: str,
+        schedule_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /workflows/schedules/{param}/pause."""
         return self._request(
             Operation("POST", "/workflows/schedules/{param}/pause"),
-            path_params=(param_1,),
+            path_params=(schedule_id,),
             query=query,
             body=body,
         )
 
-    def post_workflows_schedules_by_param_1_resume(
+    def resume_schedule(
         self,
-        param_1: str,
+        schedule_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /workflows/schedules/{param}/resume."""
         return self._request(
             Operation("POST", "/workflows/schedules/{param}/resume"),
-            path_params=(param_1,),
+            path_params=(schedule_id,),
             query=query,
             body=body,
         )
 
-    def post_workflows_schedules_by_param_1_trigger(
+    def trigger_schedule(
         self,
-        param_1: str,
+        schedule_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /workflows/schedules/{param}/trigger."""
         return self._request(
             Operation("POST", "/workflows/schedules/{param}/trigger"),
-            path_params=(param_1,),
+            path_params=(schedule_id,),
             query=query,
             body=body,
         )

@@ -23,13 +23,19 @@ def poll_until(
     timeout: float = 300.0,
     backoff: Backoff = "constant",
 ) -> ResultT:
-    """Call ``fetch`` until its result satisfies ``until`` or times out."""
+    """Call ``fetch`` until its result satisfies ``until`` or the loop times out.
+
+    ``timeout`` cannot interrupt a blocking ``fetch``. Configure the underlying
+    HTTP request timeout too.
+    """
     _validate_polling(interval, timeout, backoff)
-    predicate = until or bool
+    predicate = until if until is not None else bool
     started = time.monotonic()
     attempt = 0
     while True:
         result = fetch()
+        if time.monotonic() - started >= timeout:
+            raise TimeoutError(f"Polling timed out after {timeout:g} seconds")
         if predicate(result):
             return result
         remaining = timeout - (time.monotonic() - started)
@@ -47,13 +53,23 @@ async def async_poll_until(
     timeout: float = 300.0,
     backoff: Backoff = "constant",
 ) -> ResultT:
-    """Asynchronously poll until a result matches or the timeout expires."""
+    """Poll until a result matches or the loop timeout expires.
+
+    ``timeout`` may expire while ``fetch`` is awaiting. Configure the underlying
+    HTTP request timeout too.
+    """
     _validate_polling(interval, timeout, backoff)
-    predicate = until or bool
+    predicate = until if until is not None else bool
     started = time.monotonic()
     attempt = 0
     while True:
-        result = await fetch()
+        remaining = timeout - (time.monotonic() - started)
+        if remaining <= 0:
+            raise TimeoutError(f"Polling timed out after {timeout:g} seconds")
+        with anyio.move_on_after(remaining) as scope:
+            result = await fetch()
+        if scope.cancel_called:
+            raise TimeoutError(f"Polling timed out after {timeout:g} seconds")
         if predicate(result):
             return result
         remaining = timeout - (time.monotonic() - started)
