@@ -16,7 +16,6 @@ COVERAGE_FLOOR_PATH = ROOT / "contracts/coverage-floor.json"
 API_OPENAPI_PATH = ROOT / "contracts/openapi/api.openapi.json"
 AI_OPENAPI_PATH = ROOT / "contracts/openapi/ai.openapi.generated.json"
 MANIFEST_PATH = ROOT / "contracts/openapi/manifest.json"
-MIGRATION_PATH = ROOT / "docs/MIGRATION_2_0.md"
 FILES = [
     INVENTORY_PATH,
     COVERAGE_FLOOR_PATH,
@@ -133,52 +132,6 @@ def resource_public_method_names(path: Path) -> set[str]:
     }
 
 
-def migration_target_exists(path: Path, target: str) -> bool:
-    """Resolve a migration name through its resource namespaces."""
-    tree = ast.parse(path.read_text(encoding="utf-8"))
-    classes = {node.name: node for node in tree.body if isinstance(node, ast.ClassDef)}
-    domain = path.stem
-    root_name = "AI" if domain == "ai" else domain.title().replace("_", "")
-    current = classes.get(root_name)
-    if current is None:
-        return False
-
-    parts = target.split(".")
-    for namespace in parts[:-1]:
-        child_name: str | None = None
-        for statement in current.body:
-            if (
-                not isinstance(statement, ast.FunctionDef)
-                or statement.name != "__init__"
-            ):
-                continue
-            for node in ast.walk(statement):
-                if (
-                    isinstance(node, ast.Assign)
-                    and isinstance(node.value, ast.Call)
-                    and isinstance(node.value.func, ast.Name)
-                    and any(
-                        isinstance(destination, ast.Attribute)
-                        and isinstance(destination.value, ast.Name)
-                        and destination.value.id == "self"
-                        and destination.attr == namespace
-                        for destination in node.targets
-                    )
-                ):
-                    child_name = node.value.func.id
-                    break
-        if child_name is None or child_name not in classes:
-            return False
-        current = classes[child_name]
-
-    return any(
-        isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and member.name == parts[-1]
-        and not member.name.startswith("_")
-        for member in current.body
-    )
-
-
 def parse_openapi(path: Path) -> set[tuple[str, str]]:
     document = load_json(path)
     paths = document.get("paths")
@@ -261,19 +214,6 @@ def main() -> None:
     }
     sdk_by_surface: dict[str, list[tuple[str, tuple[str, ...]]]] = defaultdict(list)
     errors: list[str] = []
-    migration_text = MIGRATION_PATH.read_text(encoding="utf-8")
-    for domain, new_name in re.findall(
-        r"^\| `([^`]+)` \| `[^`]+` \| `([^`]+)` \|",
-        migration_text,
-        flags=re.MULTILINE,
-    ):
-        resource_path = ROOT / "frontal_sdk/resources" / f"{domain}.py"
-        if not resource_path.is_file() or not migration_target_exists(
-            resource_path, new_name
-        ):
-            errors.append(
-                f"2.0 migration guide references missing method {domain}.{new_name}"
-            )
     missing_from_spec: list[tuple[str, str, str]] = []
     expected_count = 0
 

@@ -28,7 +28,7 @@ class FrontalError(Exception):
         code: str | None = None,
         request_id: str | None = None,
         status_code: int | None = None,
-        retryable: bool | None = None,
+        transient: bool | None = None,
         safe_to_retry: bool = False,
         details: JSONValue = None,
         fields: list[ErrorField] | None = None,
@@ -38,11 +38,8 @@ class FrontalError(Exception):
         self.request_id = request_id
         self.status_code = status_code
         self.transient = (
-            status_code in _RETRYABLE_STATUS if retryable is None else retryable
+            status_code in _RETRYABLE_STATUS if transient is None else transient
         )
-        # Kept as a compatibility alias: transient failures are not always safe
-        # to replay, especially when the failed request was a write.
-        self.retryable = self.transient
         self.safe_to_retry = safe_to_retry
         self.details = details
         self.fields = fields or []
@@ -80,7 +77,7 @@ class RateLimitError(FrontalError):
             code=code,
             request_id=request_id,
             status_code=status_code,
-            retryable=True,
+            transient=True,
             safe_to_retry=safe_to_retry,
             details=details,
             fields=fields,
@@ -114,7 +111,7 @@ class NetworkError(FrontalError):
             code=code,
             request_id=request_id,
             status_code=status_code,
-            retryable=True,
+            transient=True,
             safe_to_retry=safe_to_retry,
             details=details,
         )

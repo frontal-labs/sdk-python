@@ -44,7 +44,6 @@ from frontal_sdk.models import (
     PageResult,
     PaginationMeta,
     QueryParams,
-    RegisteredTool,
     RequestBody,
     RequestBodyInput,
     RerankOptions,
@@ -69,7 +68,7 @@ from frontal_sdk.resources import (
     tool,
 )
 
-__version__ = "2.0.0"
+__version__ = "1.0.0"
 
 __all__ = [
     "APIModel",
@@ -113,7 +112,6 @@ __all__ = [
     "PaginationMeta",
     "poll_until",
     "QueryParams",
-    "RegisteredTool",
     "RateLimitError",
     "RequestBody",
     "RequestBodyInput",

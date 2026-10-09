@@ -86,8 +86,7 @@ schemas. The endpoint inventory and OpenAPI snapshots remain authoritative;
 the contract gate checks that endpoint methods do not drift. Run
 `python scripts/check_contracts.py` after changing inventory-backed methods.
 
-See the [2.0 migration guide](MIGRATION_2_0.md) for method and argument
-mappings from 1.x.
+The SDK uses resource-oriented names and semantic path arguments.
 
 If you inject an `httpx.Client` or `httpx.AsyncClient`, set its timeout on that
 HTTPX instance. The SDK uses the injected instance as-is and leaves closing it

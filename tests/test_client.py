@@ -810,41 +810,6 @@ def test_agent_configure_json_and_approval_predicate(
     client.close()
 
 
-def test_sync_ai_legacy_tool_registry_validates_input() -> None:
-    client = Frontal("frt_local_key", max_retries=0)
-    registered = client.ai.define_tool(
-        "double",
-        description="Double an integer",
-        parameters=ToolInput,
-        execute=lambda value: value.value * 2,
-    )
-    client.ai.register_tool(registered)
-
-    assert client.ai.get_tools() == [registered]
-    assert client.ai.execute_tool("double", {"value": "4"}) == 8
-    with pytest.raises(ValueError, match="Tool not found"):
-        client.ai.execute_tool("missing", {})
-    client.close()
-
-
-@pytest.mark.anyio
-async def test_async_ai_legacy_tool_registry_awaits_result() -> None:
-    async with AsyncFrontal("frt_local_key", max_retries=0) as client:
-
-        async def double(value: ToolInput) -> int:
-            return value.value * 2
-
-        registered = client.ai.define_tool(
-            "double",
-            description="Double an integer",
-            parameters=ToolInput,
-            execute=double,
-        )
-        client.ai.register_tool(registered)
-
-        assert await client.ai.execute_tool("double", {"value": 5}) == 10
-
-
 def test_sync_agent_wait_for_completion_polls_until_terminal(
     respx_mock: respx.Router,
 ) -> None:
@@ -1024,7 +989,7 @@ def test_sync_error_categories_include_request_id(
 
     assert raised.value.status_code == status
     assert raised.value.request_id == "req_123"
-    assert raised.value.retryable is False
+    assert raised.value.transient is False
     client.close()
 
 
@@ -1041,7 +1006,7 @@ def test_rate_limit_error_parses_retry_after(respx_mock: respx.Router) -> None:
     with pytest.raises(RateLimitError) as raised:
         client.agents.list()
 
-    assert raised.value.retryable is True
+    assert raised.value.transient is True
     assert raised.value.retry_after == 5.0
     client.close()
 

@@ -49,7 +49,6 @@ from frontal_sdk.models import (
     Prompt,
     PromptChain,
     QueryParams,
-    RegisteredTool,
     RerankOptions,
     RerankResult,
     StreamErrorPart,
@@ -92,62 +91,10 @@ class AI(
         super().__init__(http)
         self._prompts: dict[str, Prompt] = {}
         self._current_step = 0
-        self._tools: dict[str, RegisteredTool[Any, Any]] = {}
 
     def health(self) -> JSONResultT:
         """Check the AI gateway health."""
         return self.get_health()
-
-    def define_tool(
-        self,
-        name: str,
-        *,
-        description: str,
-        parameters: type[InputT] | TypeAdapter[InputT] | dict[str, JSONValue],
-        execute: Callable[[InputT], OutputT],
-    ) -> RegisteredTool[InputT, OutputT]:
-        """Define a named tool for the deprecated in-memory registry.
-
-        Prefer :func:`tool` and pass the tool in ``generate_text`` or
-        ``stream_text`` options.
-        """
-        return RegisteredTool(
-            name=name,
-            description=description,
-            parameters=parameters,
-            execute=execute,
-        )
-
-    def register_tool(self, registered: RegisteredTool[Any, Any]) -> None:
-        """Register a tool for later use with :meth:`execute_tool`."""
-        self._tools[registered.name] = registered
-
-    def get_tools(self) -> list[RegisteredTool[Any, Any]]:
-        """Return the process-local compatibility tool registry."""
-        return list(self._tools.values())
-
-    def _registered_tool(self, name: str) -> RegisteredTool[Any, Any]:
-        try:
-            return self._tools[name]
-        except KeyError as error:
-            raise ValueError(f"Tool not found: {name}") from error
-
-    def execute_tool(self, name: str, params: object) -> object:
-        """Execute a registered synchronous tool after validating its input."""
-        registered = self._registered_tool(name)
-        definition = ToolDefinition(
-            description=registered.description,
-            parameters=registered.parameters,
-            execute=registered.execute,
-        )
-        result = registered.execute(_tool_input(definition, cast(JSONValue, params)))
-        if inspect.isawaitable(result):
-            if inspect.iscoroutine(result):
-                result.close()
-            raise TypeError(
-                "async registered tools require AsyncFrontal.ai.execute_tool()"
-            )
-        return result
 
     def get_health(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /health."""
@@ -944,7 +891,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
                     usage=_response_usage(response.usage),
                 )
             except FrontalError as error:
-                if not error.retryable:
+                if not error.transient:
                     raise
                 last_error = error
             except (ValueError, PydanticValidationError) as error:
@@ -1065,19 +1012,6 @@ class AsyncAI(
     ]
 ):
     """Asynchronous high-level AI helpers plus every raw AI endpoint."""
-
-    async def execute_tool(self, name: str, params: object) -> object:
-        """Execute a registered tool, awaiting its result when needed."""
-        registered = self._registered_tool(name)
-        definition = ToolDefinition(
-            description=registered.description,
-            parameters=registered.parameters,
-            execute=registered.execute,
-        )
-        result = registered.execute(_tool_input(definition, cast(JSONValue, params)))
-        if inspect.isawaitable(result):
-            return await result
-        return result
 
     async def stream_text(
         self, options: StreamTextOptions | Mapping[str, object]
@@ -1280,7 +1214,7 @@ class AsyncAI(
                     usage=_response_usage(response.usage),
                 )
             except FrontalError as error:
-                if not error.retryable:
+                if not error.transient:
                     raise
                 last_error = error
             except (ValueError, PydanticValidationError) as error:

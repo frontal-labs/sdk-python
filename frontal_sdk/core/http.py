@@ -90,7 +90,7 @@ def _headers(
     values = {
         "Authorization": f"Bearer {config.api_key}",
         "Accept": "application/json",
-        "User-Agent": "frontal-python-sdk/2.0.0",
+        "User-Agent": "frontal-python-sdk/1.0.0",
         "X-Request-ID": str(uuid4()),
         "X-Frontal-Environment": config.environment,
     }
@@ -490,7 +490,7 @@ class HttpClient:
                         yield _event(event, event_id, data_lines)
                     return
             except FrontalError as error:
-                if error.retryable and not emitted and attempt < retries:
+                if error.transient and not emitted and attempt < retries:
                     time_sleep(_retry_delay(attempt, None))
                     attempt += 1
                     continue
@@ -869,7 +869,7 @@ class AsyncHttpClient:
                         yield _event(event, event_id, data_lines)
                     return
             except FrontalError as error:
-                if error.retryable and not emitted and attempt < retries:
+                if error.transient and not emitted and attempt < retries:
                     await anyio.sleep(_retry_delay(attempt, None))
                     attempt += 1
                     continue

@@ -74,8 +74,7 @@ service-specific request and response schemas for most endpoints. The SDK
 does not guess those payload shapes; define request models with `APIModel` and
 use `PageResult[T]` for paginated responses where applicable.
 
-SDK 2.0 uses resource-oriented names and semantic path arguments. See the
-[migration guide](docs/MIGRATION_2_0.md) when upgrading from 1.x.
+The SDK uses resource-oriented names and semantic path arguments.
 
 ## Development
 

@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
-VERSION = "2.0.0"
+VERSION = "1.0.0"
 
 
 def main() -> None:
@@ -47,7 +47,7 @@ def main() -> None:
             [
                 sys.executable,
                 "-c",
-                "import frontal_sdk; assert frontal_sdk.__version__ == '2.0.0'",
+                "import frontal_sdk; assert frontal_sdk.__version__ == '1.0.0'",
             ],
             cwd=temp_dir,
             env=environment,

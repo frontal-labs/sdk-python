@@ -85,16 +85,6 @@ class ToolDefinition(Generic[ToolInputT, ToolOutputT]):
     execute: Callable[[ToolInputT], ToolOutputT]
 
 
-@dataclass(frozen=True)
-class RegisteredTool(Generic[ToolInputT, ToolOutputT]):
-    """A named tool in the process-local compatibility registry."""
-
-    name: str
-    description: str
-    parameters: type[ToolInputT] | TypeAdapter[ToolInputT] | dict[str, JSONValue]
-    execute: Callable[[ToolInputT], ToolOutputT]
-
-
 class GenerateTextOptions(AIModel):
     """Validated inputs for :meth:`AI.generate_text`."""
 
