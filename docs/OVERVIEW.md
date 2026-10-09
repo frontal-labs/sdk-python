@@ -51,7 +51,7 @@ Each client exposes the same service attributes:
 
 `ai`, `agents`, `workflows`, `audit`, `auth`, `billing`, `blob`, `connectors`,
 `data`, `governance`, `lineage`, `observability`, `ontology`, `pipelines`,
-`sandbox`, `schedules`, and `webhooks`.
+`schedules`, and `webhooks`.
 
 The AI service adds normalized helpers such as `generate_text`, `stream_text`,
 `embed`, `generate_object`, `generate_speech`, `generate_image`,

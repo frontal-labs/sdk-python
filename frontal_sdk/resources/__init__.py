@@ -13,7 +13,6 @@ from frontal_sdk.resources.lineage import Lineage
 from frontal_sdk.resources.observability import Observability
 from frontal_sdk.resources.ontology import Ontology
 from frontal_sdk.resources.pipelines import Pipelines
-from frontal_sdk.resources.sandbox import Sandbox
 from frontal_sdk.resources.schedules import Schedules
 from frontal_sdk.resources.webhooks import Webhooks
 from frontal_sdk.resources.workflows import (
@@ -42,7 +41,6 @@ __all__ = [
     "Observability",
     "Ontology",
     "Pipelines",
-    "Sandbox",
     "Schedules",
     "Webhooks",
     "WorkflowAccessor",
