@@ -37,20 +37,20 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked --extra dev
       - name: Check formatting
-        run: uv run ruff format --check .
+        run: uv run --locked --no-sync --no-build ruff format --check .
       - name: Build distributions
         run: uv build
       - name: Smoke-check built distributions
-        run: uv run python scripts/check_distribution.py
+        run: uv run --locked --no-sync --no-build python scripts/check_distribution.py
       - name: Lint
-        run: uv run ruff check .
+        run: uv run --locked --no-sync --no-build ruff check .
       - name: Type check
-        run: uv run mypy --strict
+        run: uv run --locked --no-sync --no-build mypy --strict
       - name: Test transport and models
-        run: uv run python -m pytest tests/test_client.py
+        run: uv run --locked --no-sync --no-build python -m pytest tests/test_client.py
       - name: Run mocked examples
-        run: uv run python -m pytest tests/test_examples.py
+        run: uv run --locked --no-sync --no-build python -m pytest tests/test_examples.py
       - name: Execute README examples
-        run: uv run python -m pytest tests/test_docs.py
+        run: uv run --locked --no-sync --no-build python -m pytest tests/test_docs.py
       - name: Check API contract
-        run: uv run python scripts/check_contracts.py
+        run: uv run --locked --no-sync --no-build python scripts/check_contracts.py

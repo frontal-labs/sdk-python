@@ -199,9 +199,10 @@ def test_nonstandard_error_json_is_preserved(respx_mock: respx.Router) -> None:
         )
     )
     client = Frontal("frt_local_key", max_retries=0)
+    operation = Operation("GET", "/failure")
 
     with pytest.raises(FrontalError) as raised:
-        client._http.request(Operation("GET", "/failure"))
+        client._http.request(operation)
 
     assert raised.value.details == {"error": "invalid input", "field": "name"}
     client.close()
@@ -217,11 +218,13 @@ def test_http_errors_distinguish_transient_from_safe_replay(
         return_value=httpx.Response(503, json={"message": "temporary"})
     )
     client = Frontal("frt_local_key", max_retries=0)
+    read_operation = Operation("GET", "/read")
+    write_operation = Operation("POST", "/write")
 
     with pytest.raises(ServerError) as read_error:
-        client._http.request(Operation("GET", "/read"))
+        client._http.request(read_operation)
     with pytest.raises(ServerError) as write_error:
-        client._http.request(Operation("POST", "/write"), body={})
+        client._http.request(write_operation, body={})
 
     assert read_error.value.transient is True
     assert read_error.value.safe_to_retry is True

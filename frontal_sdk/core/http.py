@@ -112,7 +112,7 @@ def _headers(
 def _decode_error_body(response: httpx.Response) -> Any:
     try:
         return response.json()
-    except (ValueError, UnicodeDecodeError):
+    except ValueError:
         return None
 
 

@@ -39,19 +39,19 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked --extra dev
       - name: Check formatting
-        run: uv run ruff format --check .
+        run: uv run --locked --no-sync --no-build ruff format --check .
       - name: Build distributions
         run: uv build
       - name: Smoke-check built distributions
-        run: uv run python scripts/check_distribution.py
+        run: uv run --locked --no-sync --no-build python scripts/check_distribution.py
       - name: Lint
-        run: uv run ruff check .
+        run: uv run --locked --no-sync --no-build ruff check .
       - name: Type check
-        run: uv run mypy --strict
+        run: uv run --locked --no-sync --no-build mypy --strict
       - name: Test sync, async, examples, and docs
-        run: uv run python -m pytest
+        run: uv run --locked --no-sync --no-build python -m pytest
       - name: Check API contract
-        run: uv run python scripts/check_contracts.py
+        run: uv run --locked --no-sync --no-build python scripts/check_contracts.py
       - name: Generate SBOM
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
