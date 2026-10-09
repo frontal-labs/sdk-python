@@ -37,6 +37,8 @@ from frontal_sdk.models.http import ServerEvent
 from frontal_sdk.models.requests import UNSET, RequestBody, RequestBodyInput, Unset
 
 _RETRYABLE_STATUS = {408, 425, 429, 500, 502, 503, 504}
+_EVENT_STREAM_CONTENT_TYPE = "text/event-stream"
+_EVENT_STREAM_ERROR = "The API did not return an event stream"
 _JSON_ADAPTER: TypeAdapter[JSONValue] = TypeAdapter(JSONValue)
 _LOGGER = logging.getLogger("frontal_sdk.http")
 
@@ -283,10 +285,10 @@ def _stream_response_retry_delay(
 def _check_stream_response(response: httpx.Response) -> None:
     if response.is_error:
         raise _api_error(response, "POST")
-    if response.headers.get("content-type", "").startswith("text/event-stream"):
+    if response.headers.get("content-type", "").startswith(_EVENT_STREAM_CONTENT_TYPE):
         return
     raise FrontalError(
-        "The API did not return an event stream",
+        _EVENT_STREAM_ERROR,
         request_id=response.headers.get("x-request-id"),
         status_code=response.status_code,
     )
@@ -462,7 +464,9 @@ class HttpClient:
                 with self._client.stream(
                     "GET",
                     url,
-                    headers=_headers(self._config, {"Accept": "text/event-stream"}),
+                    headers=_headers(
+                        self._config, {"Accept": _EVENT_STREAM_CONTENT_TYPE}
+                    ),
                 ) as response:
                     if (
                         response.status_code in _RETRYABLE_STATUS
@@ -478,10 +482,10 @@ class HttpClient:
                     if response.is_error:
                         raise _api_error(response, "GET")
                     if not response.headers.get("content-type", "").startswith(
-                        "text/event-stream"
+                        _EVENT_STREAM_CONTENT_TYPE
                     ):
                         raise FrontalError(
-                            "The API did not return an event stream",
+                            _EVENT_STREAM_ERROR,
                             request_id=response.headers.get("x-request-id"),
                             status_code=response.status_code,
                         )
@@ -541,7 +545,7 @@ class HttpClient:
                     headers=_headers(
                         self._config,
                         {
-                            "Accept": "text/event-stream",
+                            "Accept": _EVENT_STREAM_CONTENT_TYPE,
                             "Content-Type": "application/json",
                         },
                     ),
@@ -798,7 +802,9 @@ class AsyncHttpClient:
                 async with self._client.stream(
                     "GET",
                     url,
-                    headers=_headers(self._config, {"Accept": "text/event-stream"}),
+                    headers=_headers(
+                        self._config, {"Accept": _EVENT_STREAM_CONTENT_TYPE}
+                    ),
                 ) as response:
                     if (
                         response.status_code in _RETRYABLE_STATUS
@@ -815,10 +821,10 @@ class AsyncHttpClient:
                     if response.is_error:
                         raise _api_error(response, "GET")
                     if not response.headers.get("content-type", "").startswith(
-                        "text/event-stream"
+                        _EVENT_STREAM_CONTENT_TYPE
                     ):
                         raise FrontalError(
-                            "The API did not return an event stream",
+                            _EVENT_STREAM_ERROR,
                             request_id=response.headers.get("x-request-id"),
                             status_code=response.status_code,
                         )
@@ -878,7 +884,7 @@ class AsyncHttpClient:
                     headers=_headers(
                         self._config,
                         {
-                            "Accept": "text/event-stream",
+                            "Accept": _EVENT_STREAM_CONTENT_TYPE,
                             "Content-Type": "application/json",
                         },
                     ),
