@@ -58,13 +58,24 @@ environment header, and debug logging. The SDK does not load `.env` files.
 - HTTPX sync and async transports with bounded GET retries, request IDs,
   pagination helpers, polling, raw bytes, multipart uploads, and SSE streams.
 - Pydantic v2 request models and validation for JSON-compatible payloads.
-- A structured error hierarchy with status, code, request ID, and retryability.
+- A structured error hierarchy with status, code, request ID, transient status,
+  and an explicit `safe_to_retry` signal.
 - Inline package typing, including `py.typed`.
+
+Streaming POST requests default to no retries because a connection failure can
+occur after the server has accepted the request. Pass an explicit retry count
+only when replaying that operation is safe. If you provide an `httpx.Client` or
+`httpx.AsyncClient`, you retain ownership of its lifecycle and timeout settings.
+For JSON writes, omitting `body` sends no request body; pass `body=None` to send
+the JSON value `null`, and `body={}` to send an empty JSON object.
 
 The OpenAPI snapshots define the operation inventory but do not include
 service-specific request and response schemas for most endpoints. The SDK
 does not guess those payload shapes; define request models with `APIModel` and
 use `PageResult[T]` for paginated responses where applicable.
+
+SDK 2.0 uses resource-oriented names and semantic path arguments. See the
+[migration guide](docs/MIGRATION_2_0.md) when upgrading from 1.x.
 
 ## Development
 

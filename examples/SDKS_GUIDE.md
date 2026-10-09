@@ -53,13 +53,13 @@ define a workflow with `client.workflows.define(name).manual().task(...).create(
 Then use the returned identifier with `client.agents.use(id)` or
 `client.workflows.use(id)` to message, inspect, trigger, or poll runs.
 
-Raw operations use method names that include the HTTP verb and route. Path
-parameters are named `param_1`, `param_2`, and so on in route order. Pass query
-parameters as `query=`, JSON request values as `body=`, multipart uploads as
-`parts=`, and raw request bodies as `data=` plus `content_type=`. Most raw
-operations return JSON values because the OpenAPI snapshot does not define a
-specific response schema for each operation. See [API resources](../docs/RESOURCES.md)
-for details and [examples](./README.md) for runnable scripts.
+SDK 2.0 operations use resource-oriented method names and semantic path
+arguments where the contract provides them. Pass query parameters as `query=`,
+JSON request values as `body=`, multipart uploads as `parts=`, and raw request
+bodies as `data=` plus `content_type=`. Most operations return JSON values
+because the OpenAPI snapshot does not define a specific response schema for
+each operation. See the [2.0 migration guide](../docs/MIGRATION_2_0.md),
+[API resources](../docs/RESOURCES.md), and [examples](./README.md).
 
 Sync streams use `for`; async streams use `async for`. AI `stream_text()` yields
 typed text and lifecycle parts. Agent `watch(run_id)` yields raw

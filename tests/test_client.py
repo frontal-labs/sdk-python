@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
+import anyio
 import httpx
 import pytest
 import respx
@@ -22,6 +24,7 @@ from frontal_sdk import (
     NetworkError,
     PageResult,
     RateLimitError,
+    ServerError,
     ServerEvent,
     ValidationError,
     async_paginate,
@@ -29,6 +32,9 @@ from frontal_sdk import (
     paginate,
     poll_until,
     tool,
+)
+from frontal_sdk import (
+    TimeoutError as FrontalTimeoutError,
 )
 from frontal_sdk.core import ClientConfig, HttpClient, Operation
 from pydantic import Field
@@ -94,9 +100,7 @@ def test_sync_request_auth_query_request_id_and_encoded_path(
     ).mock(return_value=httpx.Response(200, json={"ok": True}))
 
     client = Frontal("frt_local_key", max_retries=0)
-    response = client.agents.get_agents_by_param_1(
-        "agent/one", query={"include_runs": True}
-    )
+    response = client.agents.get(id="agent/one", query={"include_runs": True})
 
     request = route.calls.last.request
     assert response == {"ok": True}
@@ -106,6 +110,144 @@ def test_sync_request_auth_query_request_id_and_encoded_path(
     assert request.url.raw_path.split(b"?", 1)[0] == b"/v1/agents/agent%2Fone"
     assert request.url.params["include_runs"] == "True"
     client.close()
+
+
+def test_workflow_and_schedule_getters_accept_resource_id_keywords(
+    respx_mock: respx.Router,
+) -> None:
+    routes = [
+        respx_mock.get(f"{API_URL}/workflows/approvals/approval_1").mock(
+            return_value=httpx.Response(200, json={"id": "approval_1"})
+        ),
+        respx_mock.get(f"{API_URL}/workflows/executions/execution_1").mock(
+            return_value=httpx.Response(200, json={"id": "execution_1"})
+        ),
+        respx_mock.get(f"{API_URL}/workflows/tasks/task_1").mock(
+            return_value=httpx.Response(200, json={"id": "task_1"})
+        ),
+        respx_mock.get(f"{API_URL}/workflows/templates/template_1").mock(
+            return_value=httpx.Response(200, json={"id": "template_1"})
+        ),
+        respx_mock.get(f"{API_URL}/workflows/schedules/schedule_1").mock(
+            return_value=httpx.Response(200, json={"id": "schedule_1"})
+        ),
+    ]
+    client = Frontal("frt_local_key", max_retries=0)
+
+    client.workflows.get_approval(approval_id="approval_1")
+    client.workflows.get_execution(execution_id="execution_1")
+    client.workflows.get_task(task_id="task_1")
+    client.workflows.get_template(template_id="template_1")
+    client.schedules.get_schedule(schedule_id="schedule_1")
+
+    assert [route.call_count for route in routes] == [1, 1, 1, 1, 1]
+    client.close()
+
+
+def test_sync_write_distinguishes_omitted_null_and_empty_json_body(
+    respx_mock: respx.Router,
+) -> None:
+    routes = [
+        respx_mock.post(f"{API_URL}/body/omitted").mock(
+            return_value=httpx.Response(200, json={"ok": True})
+        ),
+        respx_mock.post(f"{API_URL}/body/null").mock(
+            return_value=httpx.Response(200, json={"ok": True})
+        ),
+        respx_mock.post(f"{API_URL}/body/empty").mock(
+            return_value=httpx.Response(200, json={"ok": True})
+        ),
+    ]
+    client = Frontal("frt_local_key", max_retries=0)
+    client._http.request(Operation("POST", "/body/omitted"))
+    client._http.request(Operation("POST", "/body/null"), body=None)
+    client._http.request(Operation("POST", "/body/empty"), body={})
+
+    assert routes[0].calls.last.request.content == b""
+    assert routes[0].calls.last.request.headers.get("content-type") is None
+    assert routes[1].calls.last.request.content == b"null"
+    assert routes[2].calls.last.request.content == b"{}"
+    client.close()
+
+
+def test_sse_last_event_id_persists_between_events() -> None:
+    from frontal_sdk.core.http import _parse_event_line
+
+    event, event_id, data, parsed = _parse_event_line(
+        "id: cursor-1", "message", None, []
+    )
+    assert parsed is None
+    event, event_id, data, parsed = _parse_event_line(
+        'data: {"n":1}', event, event_id, data
+    )
+    assert parsed is None
+    event, event_id, data, parsed = _parse_event_line("", event, event_id, data)
+    assert parsed == ServerEvent("message", {"n": 1}, "cursor-1")
+    assert event_id == "cursor-1"
+    event, event_id, data, parsed = _parse_event_line(
+        'data: {"n":2}', event, event_id, data
+    )
+    assert parsed is None
+    _, _, _, parsed = _parse_event_line("", event, event_id, data)
+    assert parsed == ServerEvent("message", {"n": 2}, "cursor-1")
+
+
+def test_nonstandard_error_json_is_preserved(respx_mock: respx.Router) -> None:
+    respx_mock.get(f"{API_URL}/failure").mock(
+        return_value=httpx.Response(
+            400, json={"error": "invalid input", "field": "name"}
+        )
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+
+    with pytest.raises(FrontalError) as raised:
+        client._http.request(Operation("GET", "/failure"))
+
+    assert raised.value.details == {"error": "invalid input", "field": "name"}
+    client.close()
+
+
+def test_http_errors_distinguish_transient_from_safe_replay(
+    respx_mock: respx.Router,
+) -> None:
+    respx_mock.get(f"{API_URL}/read").mock(
+        return_value=httpx.Response(503, json={"message": "temporary"})
+    )
+    respx_mock.post(f"{API_URL}/write").mock(
+        return_value=httpx.Response(503, json={"message": "temporary"})
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+
+    with pytest.raises(ServerError) as read_error:
+        client._http.request(Operation("GET", "/read"))
+    with pytest.raises(ServerError) as write_error:
+        client._http.request(Operation("POST", "/write"), body={})
+
+    assert read_error.value.transient is True
+    assert read_error.value.safe_to_retry is True
+    assert write_error.value.transient is True
+    assert write_error.value.safe_to_retry is False
+    client.close()
+
+
+def test_sync_poll_rejects_a_result_returned_after_deadline() -> None:
+    def slow_fetch() -> str:
+        time.sleep(0.02)
+        return "ready"
+
+    with pytest.raises(FrontalTimeoutError):
+        poll_until(slow_fetch, timeout=0.01)
+
+
+def test_pagination_limit_requires_positive_integer() -> None:
+    def fetch_page(query: object) -> PageResult[str]:
+        raise AssertionError("invalid pagination arguments must fail before fetch")
+
+    for value in (True, 1.5):
+        with pytest.raises(TypeError, match="max_pages must be an integer"):
+            list(paginate(fetch_page, max_pages=value))  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="max_pages must be positive"):
+        list(paginate(fetch_page, max_pages=0))
 
 
 def test_sync_generate_text_uses_typed_chat_models(
@@ -826,10 +968,22 @@ def test_pydantic_request_model_serializes_aliases(respx_mock: respx.Router) -> 
     )
     client = Frontal("frt_local_key", max_retries=0)
 
-    response = client.agents.post_agents(body=CreateAgent(display_name="sample"))
+    response = client.agents.create(body=CreateAgent(display_name="sample"))
 
     assert response == {"id": "agent_1"}
     assert json.loads(route.calls.last.request.content) == {"displayName": "sample"}
+    client.close()
+
+
+def test_agent_create_accepts_partial_json_mapping(respx_mock: respx.Router) -> None:
+    route = respx_mock.post(f"{API_URL}/agents").mock(
+        return_value=httpx.Response(201, json={"id": "agent_1"})
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+
+    client.agents.create(body={"name": "partial"})
+
+    assert json.loads(route.calls.last.request.content) == {"name": "partial"}
     client.close()
 
 
@@ -842,7 +996,7 @@ def test_sync_get_retries_transient_server_errors(respx_mock: respx.Router) -> N
     )
     client = Frontal("frt_local_key", max_retries=1)
 
-    assert client.agents.get_agents() == {"data": []}
+    assert client.agents.list() == {"data": []}
     assert route.call_count == 2
     client.close()
 
@@ -866,7 +1020,7 @@ def test_sync_error_categories_include_request_id(
     client = Frontal("frt_local_key", max_retries=0)
 
     with pytest.raises(error_type) as raised:
-        client.agents.get_agents()
+        client.agents.list()
 
     assert raised.value.status_code == status
     assert raised.value.request_id == "req_123"
@@ -885,7 +1039,7 @@ def test_rate_limit_error_parses_retry_after(respx_mock: respx.Router) -> None:
     client = Frontal("frt_local_key", max_retries=0)
 
     with pytest.raises(RateLimitError) as raised:
-        client.agents.get_agents()
+        client.agents.list()
 
     assert raised.value.retryable is True
     assert raised.value.retry_after == 5.0
@@ -901,7 +1055,7 @@ def test_multipart_and_raw_response(respx_mock: respx.Router) -> None:
     )
     client = Frontal("frt_local_key", max_retries=0)
 
-    result = client.blob.upload_blob_object_by_param_1_by_param_2(
+    result = client.blob.upload_object(
         "reports",
         "report.txt",
         [
@@ -942,7 +1096,7 @@ def test_sync_sse_stream(respx_mock: respx.Router) -> None:
     )
     client = Frontal("frt_local_key", max_retries=0)
 
-    events = list(client.agents.stream_agents_runs_by_param_1_stream("run_1"))
+    events = list(client.agents.runs.stream("run_1"))
 
     assert [(item.event, item.id, item.data) for item in events] == [
         ("state", "evt_1", {"ready": True})
@@ -962,7 +1116,7 @@ def test_sync_sse_stream_does_not_retry_after_yielding_an_event(
         )
     )
     client = Frontal("frt_local_key", max_retries=2)
-    events = client.agents.stream_agents_runs_by_param_1_stream("run_1")
+    events = client.agents.runs.stream("run_1")
 
     assert next(events) == ServerEvent("message", {"step": 1}, None)
     with pytest.raises(NetworkError, match="Stream request failed"):
@@ -980,6 +1134,42 @@ async def test_async_request_and_retry(respx_mock: respx.Router) -> None:
     async with AsyncFrontal("frt_local_key", max_retries=1) as client:
         assert await client.ai.get_health() == {"ok": True}
     assert route.call_count == 2
+
+
+@pytest.mark.anyio
+async def test_async_write_distinguishes_omitted_null_and_empty_json_body(
+    respx_mock: respx.Router,
+) -> None:
+    routes = [
+        respx_mock.post(f"{API_URL}/body/omitted").mock(
+            return_value=httpx.Response(200, json={"ok": True})
+        ),
+        respx_mock.post(f"{API_URL}/body/null").mock(
+            return_value=httpx.Response(200, json={"ok": True})
+        ),
+        respx_mock.post(f"{API_URL}/body/empty").mock(
+            return_value=httpx.Response(200, json={"ok": True})
+        ),
+    ]
+    async with AsyncFrontal("frt_local_key", max_retries=0) as client:
+        await client._http.request(Operation("POST", "/body/omitted"))
+        await client._http.request(Operation("POST", "/body/null"), body=None)
+        await client._http.request(Operation("POST", "/body/empty"), body={})
+
+    assert routes[0].calls.last.request.content == b""
+    assert routes[0].calls.last.request.headers.get("content-type") is None
+    assert routes[1].calls.last.request.content == b"null"
+    assert routes[2].calls.last.request.content == b"{}"
+
+
+@pytest.mark.anyio
+async def test_async_poll_cancels_fetch_at_deadline() -> None:
+    async def slow_fetch() -> str:
+        await anyio.sleep(0.1)
+        return "ready"
+
+    with pytest.raises(FrontalTimeoutError):
+        await async_poll_until(slow_fetch, timeout=0.01)
 
 
 @pytest.mark.anyio
@@ -1052,13 +1242,8 @@ async def test_async_error_mapping_and_sse(respx_mock: respx.Router) -> None:
     )
     async with AsyncFrontal("frt_local_key", max_retries=0) as client:
         with pytest.raises(AuthenticationError) as raised:
-            await client.agents.get_agents()
-        events = [
-            event
-            async for event in client.agents.stream_agents_runs_by_param_1_stream(
-                "run_2"
-            )
-        ]
+            await client.agents.list()
+        events = [event async for event in client.agents.runs.stream("run_2")]
 
     assert raised.value.request_id == "req_async"
     assert events == [ServerEvent("message", {"step": 1}, None)]
@@ -1077,7 +1262,7 @@ async def test_async_sse_stream_does_not_retry_after_yielding_an_event(
         )
     )
     async with AsyncFrontal("frt_local_key", max_retries=2) as client:
-        events = client.agents.stream_agents_runs_by_param_1_stream("run_2")
+        events = client.agents.runs.stream("run_2")
         assert await events.__anext__() == ServerEvent("message", {"step": 1}, None)
         with pytest.raises(NetworkError, match="Stream request failed"):
             await events.__anext__()

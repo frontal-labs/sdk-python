@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Generic
 
 from frontal_sdk.core.operation import Operation
-from frontal_sdk.models import QueryParams, RequestBody
+from frontal_sdk.models import QueryParams
+from frontal_sdk.models.requests import UNSET, RequestBodyInput
 from frontal_sdk.resources._base import (
     APIResource,
     BytesResultT,
@@ -20,7 +21,7 @@ class Sandbox(
 ):
     """Methods for the sandbox API endpoints."""
 
-    def get_sandbox_languages(self, *, query: QueryParams | None = None) -> JSONResultT:
+    def list_languages(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /sandbox/languages."""
         return self._request(
             Operation("GET", "/sandbox/languages"),
@@ -29,7 +30,7 @@ class Sandbox(
         )
 
     def post_sandbox_self_test(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /sandbox/self-test."""
         return self._request(
@@ -40,7 +41,7 @@ class Sandbox(
         )
 
     def post_sandbox_submit(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /sandbox/submit."""
         return self._request(

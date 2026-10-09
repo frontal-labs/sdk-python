@@ -59,7 +59,7 @@ an execution, list executions, and poll one to a terminal state. The same
 accessors work with `AsyncFrontal`; await their results and use `async for` for
 streams.
 
-## Raw endpoint methods
+## Endpoint methods
 
 Each service also exposes methods corresponding to the committed inventory.
 For example:
@@ -68,15 +68,16 @@ For example:
 from frontal_sdk import Frontal
 
 with Frontal() as client:
-    agent = client.agents.get_agents_by_param_1("agent_123")
-    page = client.agents.get_agents(query={"limit": 20})
+    agent = client.agents.get(id="agent_123")
+    page = client.agents.list(query={"limit": 20})
 ```
 
-Raw method names include the HTTP verb and route segments. Since the inventory
-does not preserve path parameter names, placeholders appear as `param_1`,
-`param_2`, and so on in route order. Use `query=` for query parameters,
-`body=` for JSON writes, `parts=` for multipart uploads, and `data=` with
-`content_type=` for raw request bodies. Raw streaming methods return
+The `agents` collection exposes concise `get(id=...)` and `list(query=...)`
+methods, with runs and versions under `client.agents.runs` and
+`client.agents.versions`. Other service namespaces continue to expose their
+current resource-oriented operation names. Across them, use `query=` for query
+parameters, `body=` for JSON writes, `parts=` for multipart uploads, and `data=`
+with `content_type=` for raw request bodies. Streaming methods return
 `ServerEvent` iterators; raw response-body methods return bytes.
 
 Pydantic models cover shared and high-level boundaries. Raw operation payloads
@@ -84,3 +85,55 @@ use `JSONValue` where the OpenAPI snapshots do not define operation-specific
 schemas. The endpoint inventory and OpenAPI snapshots remain authoritative;
 the contract gate checks that endpoint methods do not drift. Run
 `python scripts/check_contracts.py` after changing inventory-backed methods.
+
+See the [2.0 migration guide](MIGRATION_2_0.md) for method and argument
+mappings from 1.x.
+
+If you inject an `httpx.Client` or `httpx.AsyncClient`, set its timeout on that
+HTTPX instance. The SDK uses the injected instance as-is and leaves closing it
+to your application:
+
+```python
+import httpx
+from frontal_sdk import Frontal
+
+http = httpx.Client(timeout=httpx.Timeout(10.0, connect=2.0))
+with Frontal(http_client=http) as client:
+    agents = client.agents.list()
+http.close()
+```
+
+## Pagination and errors
+
+The endpoint inventory does not assign a response model to every collection.
+Validate the documented page envelope at the call site, then use the shared
+cursor helper:
+
+```python
+from frontal_sdk import Frontal, PageResult, RateLimitError, paginate
+from frontal_sdk.models import JSONValue
+
+with Frontal() as client:
+
+    def fetch_agents(query):
+        response = client.agents.list(query=query)
+        return PageResult[dict[str, JSONValue]].model_validate(response)
+
+    try:
+        agent_rows = list(paginate(fetch_agents, query={"limit": 50}))
+    except RateLimitError as error:
+        print(error.request_id, error.retry_after)
+```
+
+Each fetch callback receives the original query plus the cursor returned by the
+prior page. Configure `timeout` on the client as well as on polling helpers: a
+polling deadline cannot interrupt a blocking synchronous fetch.
+
+## Request bodies and retry safety
+
+Write methods distinguish an omitted body from JSON values. Omitting `body`
+sends no request body; `body=None` sends JSON `null`, and `body={}` sends an
+empty JSON object. API errors expose `transient` for temporary failures and
+`safe_to_retry` for operations that can be replayed safely. A transient error
+from a write may still represent an operation the server accepted, so inspect
+`safe_to_retry` before replaying it.

@@ -48,12 +48,23 @@ class ClientConfig:
             raise ValueError("max_retries must be between 0 and 10")
         if not self.environment.strip():
             raise ValueError("environment must not be empty")
+        reserved_headers = {
+            "authorization",
+            "x-request-id",
+            "x-frontal-environment",
+        }
         for name, value in self.headers.items():
+            if not isinstance(name, str) or not isinstance(value, str):
+                raise TypeError("header names and values must be strings")
             if not name or any(char in name for char in "\r\n:"):
                 raise ValueError(
                     "header names must be non-empty and contain no colon or newline"
                 )
             if "\r" in value or "\n" in value:
                 raise ValueError("header values must not contain newlines")
+            if name.lower() in reserved_headers:
+                raise ValueError(
+                    f"{name} is managed by the SDK and cannot be overridden"
+                )
         object.__setattr__(self, "base_url", self.base_url.rstrip("/"))
         object.__setattr__(self, "headers", MappingProxyType(dict(self.headers)))

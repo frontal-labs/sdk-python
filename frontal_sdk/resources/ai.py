@@ -50,7 +50,6 @@ from frontal_sdk.models import (
     PromptChain,
     QueryParams,
     RegisteredTool,
-    RequestBody,
     RerankOptions,
     RerankResult,
     StreamErrorPart,
@@ -68,6 +67,7 @@ from frontal_sdk.models import (
     VariableDefinition,
 )
 from frontal_sdk.models.http import ServerEvent
+from frontal_sdk.models.requests import UNSET, RequestBodyInput
 from frontal_sdk.resources._base import (
     APIResource,
     BytesResultT,
@@ -157,7 +157,7 @@ class AI(
             query=query,
         )
 
-    def get_internal_models(self, *, query: QueryParams | None = None) -> JSONResultT:
+    def list_model_records(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /internal/models."""
         return self._request(
             Operation("GET", "/internal/models"),
@@ -165,9 +165,7 @@ class AI(
             query=query,
         )
 
-    def get_internal_models_defaults(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_defaults(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /internal/models/defaults."""
         return self._request(
             Operation("GET", "/internal/models/defaults"),
@@ -175,8 +173,8 @@ class AI(
             query=query,
         )
 
-    def post_ai_chat_completions(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_completion(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /ai/chat/completions."""
         return self._request(
@@ -186,8 +184,8 @@ class AI(
             body=body,
         )
 
-    def post_internal_embeddings(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_embedding(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /internal/embeddings."""
         return self._request(
@@ -197,8 +195,8 @@ class AI(
             body=body,
         )
 
-    def post_internal_predictions(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_prediction(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /internal/predictions."""
         return self._request(
@@ -209,7 +207,7 @@ class AI(
         )
 
     def post_internal_rerank(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /internal/rerank."""
         return self._request(
@@ -790,7 +788,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
                 request.model_dump(mode="json", by_alias=True, exclude_none=True),
             )
             response = ChatCompletionResponse.model_validate(
-                self.post_ai_chat_completions(body=body)
+                self.create_completion(body=body)
             )
             result = _generate_text_result(response)
             total_usage = _combined_usage(total_usage, result.usage)
@@ -856,9 +854,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
         """Create text embeddings and normalize the vector response."""
         request = EmbeddingsRequest(model=model, input=input)
         body = cast(JSONValue, request.model_dump(mode="json", by_alias=True))
-        response = EmbeddingsResponse.model_validate(
-            self.post_internal_embeddings(body=body)
-        )
+        response = EmbeddingsResponse.model_validate(self.create_embedding(body=body))
         return EmbedResult(
             embeddings=[item.embedding for item in response.data],
             usage=EmbedUsage(totalTokens=response.usage.total_tokens),
@@ -866,7 +862,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
 
     def list_models(self) -> list[str]:
         """List model IDs advertised by the AI gateway."""
-        response = self.get_internal_models()
+        response = self.list_model_records()
         if isinstance(response, dict):
             data = response.get("data")
             if isinstance(data, list) and data:
@@ -884,7 +880,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
 
     def get_default_models(self) -> dict[str, str]:
         """Return the gateway's model ID for each supported capability."""
-        response = self.get_internal_models_defaults()
+        response = self.list_defaults()
         if isinstance(response, dict):
             return {
                 key: value for key, value in response.items() if isinstance(value, str)
@@ -896,10 +892,18 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
         return (len(text) + 3) // 4
 
     def estimate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
-        """Estimate cost using the SDK's documented placeholder rates."""
-        input_rate, output_rate = (
-            (0.000001, 0.000002) if model == "frontal-ai-fast" else (0.00001, 0.00003)
-        )
+        """Estimate cost using the documented placeholder rate for one model.
+
+        This is a rough planning estimate, not billing data. Other model IDs
+        require an application-owned pricing table and are rejected.
+        """
+        if input_tokens < 0 or output_tokens < 0:
+            raise ValueError("token counts must be non-negative")
+        if model != "frontal-ai-fast":
+            raise ValueError(
+                "estimate_cost only has a placeholder rate for frontal-ai-fast"
+            )
+        input_rate, output_rate = (0.000001, 0.000002)
         return input_tokens * input_rate + output_tokens * output_rate
 
     def generate_object(
@@ -911,9 +915,15 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
         temperature: float | None = None,
         max_retries: int = 0,
     ) -> GenerateObjectResult[Any]:
-        """Generate JSON and validate it with a Pydantic model or adapter."""
-        if max_retries < 0:
-            raise ValueError("max_retries must be non-negative")
+        """Generate JSON and validate it with a Pydantic model or adapter.
+
+        Each retry issues the generation POST again and may incur additional
+        work or cost; use retries only when that replay is acceptable.
+        """
+        if isinstance(max_retries, bool) or not isinstance(max_retries, int):
+            raise TypeError("max_retries must be an integer")
+        if not 0 <= max_retries <= 10:
+            raise ValueError("max_retries must be between 0 and 10")
         body = _object_request(model, prompt, schema, temperature)
         last_error: Exception | None = None
         for attempt in range(max_retries + 1):
@@ -921,7 +931,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
                 time.sleep(0.5)
             try:
                 response = ChatCompletionResponse.model_validate(
-                    self.post_ai_chat_completions(body=body)
+                    self.create_completion(body=body)
                 )
                 content = (
                     response.choices[0].message.content if response.choices else None
@@ -982,7 +992,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
             body["quality"] = values.quality
         if values.style is not None:
             body["style"] = values.style
-        return _image_result(self.post_internal_predictions(body=body))
+        return _image_result(self.create_prediction(body=body))
 
     def generate_video(
         self, options: GenerateVideoOptions | Mapping[str, JSONValue]
@@ -996,9 +1006,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
             JSONValue,
             values.model_dump(mode="json", by_alias=True, exclude_none=True),
         )
-        return GenerateVideoResult.model_validate(
-            self.post_internal_predictions(body=body)
-        )
+        return GenerateVideoResult.model_validate(self.create_prediction(body=body))
 
     def transcribe(
         self, options: TranscriptionOptions | Mapping[str, object]
@@ -1036,9 +1044,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
             "input": cast(JSONValue, values.input),
             "model": values.model or "text-moderation-latest",
         }
-        return ModerationResult.model_validate(
-            self.post_internal_predictions(body=body)
-        )
+        return ModerationResult.model_validate(self.create_prediction(body=body))
 
     def rerank(self, options: RerankOptions | Mapping[str, JSONValue]) -> RerankResult:
         values = (
@@ -1118,7 +1124,7 @@ class AsyncAI(
                 request.model_dump(mode="json", by_alias=True, exclude_none=True),
             )
             response = ChatCompletionResponse.model_validate(
-                await self.post_ai_chat_completions(body=body)
+                await self.create_completion(body=body)
             )
             result = _generate_text_result(response)
             total_usage = _combined_usage(total_usage, result.usage)
@@ -1183,7 +1189,7 @@ class AsyncAI(
         request = EmbeddingsRequest(model=model, input=input)
         body = cast(JSONValue, request.model_dump(mode="json", by_alias=True))
         response = EmbeddingsResponse.model_validate(
-            await self.post_internal_embeddings(body=body)
+            await self.create_embedding(body=body)
         )
         return EmbedResult(
             embeddings=[item.embedding for item in response.data],
@@ -1192,7 +1198,7 @@ class AsyncAI(
 
     async def list_models(self) -> list[str]:
         """List model IDs advertised by the AI gateway."""
-        response = await self.get_internal_models()
+        response = await self.list_model_records()
         if isinstance(response, dict):
             data = response.get("data")
             if isinstance(data, list) and data:
@@ -1210,7 +1216,7 @@ class AsyncAI(
 
     async def get_default_models(self) -> dict[str, str]:
         """Return the gateway's model ID for each supported capability."""
-        response = await self.get_internal_models_defaults()
+        response = await self.list_defaults()
         if isinstance(response, dict):
             return {
                 key: value for key, value in response.items() if isinstance(value, str)
@@ -1222,10 +1228,18 @@ class AsyncAI(
         return (len(text) + 3) // 4
 
     def estimate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
-        """Estimate cost using the SDK's documented placeholder rates."""
-        input_rate, output_rate = (
-            (0.000001, 0.000002) if model == "frontal-ai-fast" else (0.00001, 0.00003)
-        )
+        """Estimate cost using the documented placeholder rate for one model.
+
+        This is a rough planning estimate, not billing data. Other model IDs
+        require an application-owned pricing table and are rejected.
+        """
+        if input_tokens < 0 or output_tokens < 0:
+            raise ValueError("token counts must be non-negative")
+        if model != "frontal-ai-fast":
+            raise ValueError(
+                "estimate_cost only has a placeholder rate for frontal-ai-fast"
+            )
+        input_rate, output_rate = (0.000001, 0.000002)
         return input_tokens * input_rate + output_tokens * output_rate
 
     async def generate_object(
@@ -1237,9 +1251,15 @@ class AsyncAI(
         temperature: float | None = None,
         max_retries: int = 0,
     ) -> GenerateObjectResult[Any]:
-        """Generate JSON and validate it with a Pydantic model or adapter."""
-        if max_retries < 0:
-            raise ValueError("max_retries must be non-negative")
+        """Generate JSON and validate it with a Pydantic model or adapter.
+
+        Each retry issues the generation POST again and may incur additional
+        work or cost; use retries only when that replay is acceptable.
+        """
+        if isinstance(max_retries, bool) or not isinstance(max_retries, int):
+            raise TypeError("max_retries must be an integer")
+        if not 0 <= max_retries <= 10:
+            raise ValueError("max_retries must be between 0 and 10")
         body = _object_request(model, prompt, schema, temperature)
         last_error: Exception | None = None
         for attempt in range(max_retries + 1):
@@ -1247,7 +1267,7 @@ class AsyncAI(
                 await anyio.sleep(0.5)
             try:
                 response = ChatCompletionResponse.model_validate(
-                    await self.post_ai_chat_completions(body=body)
+                    await self.create_completion(body=body)
                 )
                 content = (
                     response.choices[0].message.content if response.choices else None
@@ -1307,7 +1327,7 @@ class AsyncAI(
             body["quality"] = values.quality
         if values.style is not None:
             body["style"] = values.style
-        return _image_result(await self.post_internal_predictions(body=body))
+        return _image_result(await self.create_prediction(body=body))
 
     async def generate_video(
         self, options: GenerateVideoOptions | Mapping[str, JSONValue]
@@ -1321,7 +1341,7 @@ class AsyncAI(
             JSONValue,
             values.model_dump(mode="json", by_alias=True, exclude_none=True),
         )
-        response = await self.post_internal_predictions(body=body)
+        response = await self.create_prediction(body=body)
         return GenerateVideoResult.model_validate(response)
 
     async def transcribe(
@@ -1360,7 +1380,7 @@ class AsyncAI(
             "input": cast(JSONValue, values.input),
             "model": values.model or "text-moderation-latest",
         }
-        response = await self.post_internal_predictions(body=body)
+        response = await self.create_prediction(body=body)
         return ModerationResult.model_validate(response)
 
     async def rerank(

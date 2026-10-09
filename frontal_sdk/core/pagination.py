@@ -73,7 +73,10 @@ async def async_paginate(
 
 
 def _validate_pagination(cursor_param: str, max_pages: int | None) -> None:
-    if not cursor_param:
+    if not isinstance(cursor_param, str) or not cursor_param.strip():
         raise ValueError("cursor_param must not be empty")
-    if max_pages is not None and max_pages < 1:
-        raise ValueError("max_pages must be positive")
+    if max_pages is not None:
+        if isinstance(max_pages, bool) or not isinstance(max_pages, int):
+            raise TypeError("max_pages must be an integer")
+        if max_pages < 1:
+            raise ValueError("max_pages must be positive")

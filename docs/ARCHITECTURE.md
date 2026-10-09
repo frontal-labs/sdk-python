@@ -30,13 +30,19 @@ request IDs, timeouts, bounded retries with backoff, Pydantic JSON validation,
 structured errors, multipart uploads, raw bytes, and server-sent events. Safe
 GET requests are retryable. Stream retries are limited to the period before
 the first event is delivered, so an already-consumed stream is never replayed.
+Streaming POST requests default to zero retries because a request may have been
+accepted before a connection failure is visible to the client. Retrying one is
+opt-in through its `max_retries` argument and is appropriate only when replay is
+safe. The server's `Retry-After` value is honored up to five seconds. Debug
+request logs include the path but omit query values.
 `core/pagination.py` and `core/polling.py` provide sync and async cursor
 iteration and polling helpers.
 
 The clients default to `https://api.frontal.dev/v1`, a 30 second timeout, and
 three transport retries. Pass `base_url`, `timeout`, `max_retries`,
 `environment`, or `debug` to override those defaults. Both clients are context
-managers and close their HTTPX connection pools on exit.
+managers and close SDK-owned HTTPX connection pools on exit. If an HTTPX client
+is injected, the caller owns it and its timeout configuration.
 
 ## Request flow
 

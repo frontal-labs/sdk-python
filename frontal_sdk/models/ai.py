@@ -105,7 +105,7 @@ class GenerateTextOptions(AIModel):
     model: str
     prompt: str | list[Message]
     messages: list[Message] | None = None
-    max_tokens: float | None = Field(default=None, alias="maxTokens")
+    max_tokens: int | None = Field(default=None, alias="maxTokens", ge=1)
     temperature: float | None = None
     top_p: float | None = Field(default=None, alias="topP")
     frequency_penalty: float | None = Field(default=None, alias="frequencyPenalty")
@@ -199,13 +199,13 @@ class ChatCompletionRequest(AIModel):
     n: int | None = None
     stream: bool | None = None
     stop: str | list[str] | None = None
-    max_tokens: float | None = Field(default=None, alias="maxTokens")
+    max_tokens: int | None = Field(default=None, alias="maxTokens", ge=1)
     presence_penalty: float | None = Field(default=None, alias="presencePenalty")
     frequency_penalty: float | None = Field(default=None, alias="frequencyPenalty")
     logit_bias: dict[str, float] | None = Field(default=None, alias="logitBias")
     user: str | None = None
     response_format: dict[str, str] | None = Field(default=None, alias="responseFormat")
-    seed: float | None = None
+    seed: int | None = None
     tools: list[JSONValue] | None = None
     tool_choice: JSONValue = Field(default=None, alias="toolChoice")
 

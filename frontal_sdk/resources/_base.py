@@ -7,6 +7,7 @@ from typing import Generic, Protocol, TypeVar
 
 from frontal_sdk.core.operation import Operation
 from frontal_sdk.models import MultipartPart, QueryParams, RequestBody
+from frontal_sdk.models.requests import UNSET, RequestBodyInput
 
 JSONResultT = TypeVar("JSONResultT", covariant=True)
 BytesResultT = TypeVar("BytesResultT", covariant=True)
@@ -22,7 +23,7 @@ class HTTPTransport(Protocol[JSONResultT, BytesResultT, StreamResultT]):
         *,
         path_params: Sequence[str] = (),
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT: ...
 
     def request_multipart(
@@ -84,7 +85,7 @@ class APIResource(Generic[JSONResultT, BytesResultT, StreamResultT]):
         *,
         path_params: Sequence[str] = (),
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         return self._http.request(
             operation, path_params=path_params, query=query, body=body

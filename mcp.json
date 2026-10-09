@@ -1,7 +1,7 @@
 {
   "name": "Frontal Python SDK",
   "language": "Python",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "status": "stable",
   "documents": [
     {
@@ -63,6 +63,10 @@
     {
       "path": "docs/ENTERPRISE_READINESS.md",
       "title": "ENTERPRISE READINESS"
+    },
+    {
+      "path": "docs/MIGRATION_2_0.md",
+      "title": "MIGRATION 2 0"
     },
     {
       "path": "docs/ONBOARDING.md",

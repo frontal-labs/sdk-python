@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Generic
 
 from frontal_sdk.core.operation import Operation
-from frontal_sdk.models import QueryParams, RequestBody
+from frontal_sdk.models import QueryParams
+from frontal_sdk.models.requests import UNSET, RequestBodyInput
 from frontal_sdk.resources._base import (
     APIResource,
     BytesResultT,
@@ -20,7 +21,7 @@ class Audit(
 ):
     """Methods for the audit API endpoints."""
 
-    def get_audit_events(self, *, query: QueryParams | None = None) -> JSONResultT:
+    def list_events(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /audit/events."""
         return self._request(
             Operation("GET", "/audit/events"),
@@ -28,18 +29,18 @@ class Audit(
             query=query,
         )
 
-    def get_audit_events_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_event(
+        self, event_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /audit/events/{param}."""
         return self._request(
             Operation("GET", "/audit/events/{param}"),
-            path_params=(param_1,),
+            path_params=(event_id,),
             query=query,
         )
 
-    def post_audit_events(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_event(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /audit/events."""
         return self._request(
@@ -50,7 +51,7 @@ class Audit(
         )
 
     def post_audit_events_batch(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /audit/events/batch."""
         return self._request(

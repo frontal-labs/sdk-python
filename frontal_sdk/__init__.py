@@ -16,6 +16,7 @@ from frontal_sdk.core.errors import (
 from frontal_sdk.core.pagination import async_paginate, paginate
 from frontal_sdk.core.polling import async_poll_until, poll_until
 from frontal_sdk.models import (
+    UNSET,
     Agent,
     AgentDefinition,
     AgentExecution,
@@ -45,6 +46,7 @@ from frontal_sdk.models import (
     QueryParams,
     RegisteredTool,
     RequestBody,
+    RequestBodyInput,
     RerankOptions,
     RerankResult,
     ServerEvent,
@@ -54,6 +56,7 @@ from frontal_sdk.models import (
     ToolDefinition,
     TranscriptionOptions,
     TranscriptionResult,
+    Unset,
     Workflow,
     WorkflowDefinition,
     WorkflowExecution,
@@ -66,7 +69,7 @@ from frontal_sdk.resources import (
     tool,
 )
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 __all__ = [
     "APIModel",
@@ -113,6 +116,7 @@ __all__ = [
     "RegisteredTool",
     "RateLimitError",
     "RequestBody",
+    "RequestBodyInput",
     "RerankOptions",
     "RerankResult",
     "ServerError",
@@ -131,5 +135,7 @@ __all__ = [
     "WorkflowExecution",
     "StepDefinition",
     "tool",
+    "UNSET",
+    "Unset",
     "__version__",
 ]

@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Generic
 
 from frontal_sdk.core.operation import Operation
-from frontal_sdk.models import QueryParams, RequestBody
+from frontal_sdk.models import QueryParams
+from frontal_sdk.models.requests import UNSET, RequestBodyInput
 from frontal_sdk.resources._base import (
     APIResource,
     BytesResultT,
@@ -20,9 +21,7 @@ class Data(
 ):
     """Methods for the data API endpoints."""
 
-    def get_data_aggregations_aggregations(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_aggregations(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/aggregations/aggregations."""
         return self._request(
             Operation("GET", "/data/aggregations/aggregations"),
@@ -30,19 +29,17 @@ class Data(
             query=query,
         )
 
-    def get_data_aggregations_aggregations_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_aggregation(
+        self, aggregation_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/aggregations/aggregations/{param}."""
         return self._request(
             Operation("GET", "/data/aggregations/aggregations/{param}"),
-            path_params=(param_1,),
+            path_params=(aggregation_id,),
             query=query,
         )
 
-    def get_data_archival_archival_policies(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_policies(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/archival/archival/policies."""
         return self._request(
             Operation("GET", "/data/archival/archival/policies"),
@@ -50,17 +47,17 @@ class Data(
             query=query,
         )
 
-    def get_data_archival_archival_policies_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_policy(
+        self, policy_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/archival/archival/policies/{param}."""
         return self._request(
             Operation("GET", "/data/archival/archival/policies/{param}"),
-            path_params=(param_1,),
+            path_params=(policy_id,),
             query=query,
         )
 
-    def get_data_enrichment_enrichment_profiles(
+    def list_enrichment_profiles(
         self, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/enrichment/enrichment/profiles."""
@@ -70,19 +67,17 @@ class Data(
             query=query,
         )
 
-    def get_data_enrichment_enrichment_profiles_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_enrichment_profile(
+        self, profile_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/enrichment/enrichment/profiles/{param}."""
         return self._request(
             Operation("GET", "/data/enrichment/enrichment/profiles/{param}"),
-            path_params=(param_1,),
+            path_params=(profile_id,),
             query=query,
         )
 
-    def get_data_exports_exports(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_exports(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/exports/exports."""
         return self._request(
             Operation("GET", "/data/exports/exports"),
@@ -90,17 +85,17 @@ class Data(
             query=query,
         )
 
-    def get_data_exports_exports_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_export(
+        self, export_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/exports/exports/{param}."""
         return self._request(
             Operation("GET", "/data/exports/exports/{param}"),
-            path_params=(param_1,),
+            path_params=(export_id,),
             query=query,
         )
 
-    def get_data_normalization_normalization_profiles(
+    def list_normalization_profiles(
         self, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/normalization/normalization/profiles."""
@@ -110,19 +105,17 @@ class Data(
             query=query,
         )
 
-    def get_data_normalization_normalization_profiles_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_normalization_profile(
+        self, profile_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/normalization/normalization/profiles/{param}."""
         return self._request(
             Operation("GET", "/data/normalization/normalization/profiles/{param}"),
-            path_params=(param_1,),
+            path_params=(profile_id,),
             query=query,
         )
 
-    def get_data_quality_quality_rulesets(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_rulesets(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/quality/quality/rulesets."""
         return self._request(
             Operation("GET", "/data/quality/quality/rulesets"),
@@ -130,19 +123,17 @@ class Data(
             query=query,
         )
 
-    def get_data_quality_quality_rulesets_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_ruleset(
+        self, ruleset_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/quality/quality/rulesets/{param}."""
         return self._request(
             Operation("GET", "/data/quality/quality/rulesets/{param}"),
-            path_params=(param_1,),
+            path_params=(ruleset_id,),
             query=query,
         )
 
-    def get_data_schemas_schemas(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_schemas(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/schemas/schemas."""
         return self._request(
             Operation("GET", "/data/schemas/schemas"),
@@ -150,19 +141,17 @@ class Data(
             query=query,
         )
 
-    def get_data_schemas_schemas_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_schema_ref(
+        self, schema_ref: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/schemas/schemas/{param}."""
         return self._request(
             Operation("GET", "/data/schemas/schemas/{param}"),
-            path_params=(param_1,),
+            path_params=(schema_ref,),
             query=query,
         )
 
-    def get_data_serving_serving_products(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_products(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/serving/serving/products."""
         return self._request(
             Operation("GET", "/data/serving/serving/products"),
@@ -170,19 +159,17 @@ class Data(
             query=query,
         )
 
-    def get_data_serving_serving_products_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_product(
+        self, product_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/serving/serving/products/{param}."""
         return self._request(
             Operation("GET", "/data/serving/serving/products/{param}"),
-            path_params=(param_1,),
+            path_params=(product_id,),
             query=query,
         )
 
-    def get_data_streams_streams(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_streams(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/streams/streams."""
         return self._request(
             Operation("GET", "/data/streams/streams"),
@@ -190,19 +177,17 @@ class Data(
             query=query,
         )
 
-    def get_data_streams_streams_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_stream(
+        self, stream_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/streams/streams/{param}."""
         return self._request(
             Operation("GET", "/data/streams/streams/{param}"),
-            path_params=(param_1,),
+            path_params=(stream_id,),
             query=query,
         )
 
-    def get_data_sync_sync_jobs(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_jobs(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/sync/sync/jobs."""
         return self._request(
             Operation("GET", "/data/sync/sync/jobs"),
@@ -210,19 +195,15 @@ class Data(
             query=query,
         )
 
-    def get_data_sync_sync_jobs_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def get_job(self, job_id: str, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/sync/sync/jobs/{param}."""
         return self._request(
             Operation("GET", "/data/sync/sync/jobs/{param}"),
-            path_params=(param_1,),
+            path_params=(job_id,),
             query=query,
         )
 
-    def get_data_transformations_transformations(
-        self, *, query: QueryParams | None = None
-    ) -> JSONResultT:
+    def list_transformations(self, *, query: QueryParams | None = None) -> JSONResultT:
         """Call GET /data/transformations/transformations."""
         return self._request(
             Operation("GET", "/data/transformations/transformations"),
@@ -230,18 +211,18 @@ class Data(
             query=query,
         )
 
-    def get_data_transformations_transformations_by_param_1(
-        self, param_1: str, *, query: QueryParams | None = None
+    def get_transformation(
+        self, transformation_id: str, *, query: QueryParams | None = None
     ) -> JSONResultT:
         """Call GET /data/transformations/transformations/{param}."""
         return self._request(
             Operation("GET", "/data/transformations/transformations/{param}"),
-            path_params=(param_1,),
+            path_params=(transformation_id,),
             query=query,
         )
 
-    def post_data_aggregations_aggregations(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_aggregation(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/aggregations/aggregations."""
         return self._request(
@@ -251,23 +232,23 @@ class Data(
             body=body,
         )
 
-    def post_data_aggregations_aggregations_by_param_1_executions(
+    def create_execution_for_aggregation(
         self,
-        param_1: str,
+        aggregation_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /data/aggregations/aggregations/{param}/executions."""
         return self._request(
             Operation("POST", "/data/aggregations/aggregations/{param}/executions"),
-            path_params=(param_1,),
+            path_params=(aggregation_id,),
             query=query,
             body=body,
         )
 
-    def post_data_archival_archival_policies(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_policy(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/archival/archival/policies."""
         return self._request(
@@ -277,23 +258,23 @@ class Data(
             body=body,
         )
 
-    def post_data_archival_archival_policies_by_param_1_executions(
+    def create_execution_for_policy(
         self,
-        param_1: str,
+        policy_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /data/archival/archival/policies/{param}/executions."""
         return self._request(
             Operation("POST", "/data/archival/archival/policies/{param}/executions"),
-            path_params=(param_1,),
+            path_params=(policy_id,),
             query=query,
             body=body,
         )
 
-    def post_data_enrichment_enrichment_profiles(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_enrichment_profile(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/enrichment/enrichment/profiles."""
         return self._request(
@@ -303,25 +284,25 @@ class Data(
             body=body,
         )
 
-    def post_data_enrichment_enrichment_profiles_by_param_1_executions(
+    def create_execution_for_enrichment_profile(
         self,
-        param_1: str,
+        profile_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /data/enrichment/enrichment/profiles/{param}/executions."""
         return self._request(
             Operation(
                 "POST", "/data/enrichment/enrichment/profiles/{param}/executions"
             ),
-            path_params=(param_1,),
+            path_params=(profile_id,),
             query=query,
             body=body,
         )
 
-    def post_data_exports_exports(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_export(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/exports/exports."""
         return self._request(
@@ -331,23 +312,23 @@ class Data(
             body=body,
         )
 
-    def post_data_exports_exports_by_param_1_executions(
+    def create_execution_for_export(
         self,
-        param_1: str,
+        export_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /data/exports/exports/{param}/executions."""
         return self._request(
             Operation("POST", "/data/exports/exports/{param}/executions"),
-            path_params=(param_1,),
+            path_params=(export_id,),
             query=query,
             body=body,
         )
 
-    def post_data_normalization_normalization_profiles(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_normalization_profile(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/normalization/normalization/profiles."""
         return self._request(
@@ -357,25 +338,25 @@ class Data(
             body=body,
         )
 
-    def post_data_normalization_normalization_profiles_by_param_1_executions(
+    def create_execution_for_normalization_profile(
         self,
-        param_1: str,
+        profile_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /data/normalization/normalization/profiles/{param}/executions."""
         return self._request(
             Operation(
                 "POST", "/data/normalization/normalization/profiles/{param}/executions"
             ),
-            path_params=(param_1,),
+            path_params=(profile_id,),
             query=query,
             body=body,
         )
 
-    def post_data_quality_quality_rulesets(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_ruleset(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/quality/quality/rulesets."""
         return self._request(
@@ -385,23 +366,23 @@ class Data(
             body=body,
         )
 
-    def post_data_quality_quality_rulesets_by_param_1_evaluations(
+    def create_evaluation_for_ruleset(
         self,
-        param_1: str,
+        ruleset_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /data/quality/quality/rulesets/{param}/evaluations."""
         return self._request(
             Operation("POST", "/data/quality/quality/rulesets/{param}/evaluations"),
-            path_params=(param_1,),
+            path_params=(ruleset_id,),
             query=query,
             body=body,
         )
 
     def post_data_query_query_federated(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/query/query/federated."""
         return self._request(
@@ -411,8 +392,8 @@ class Data(
             body=body,
         )
 
-    def post_data_schemas_schemas(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_schema(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/schemas/schemas."""
         return self._request(
@@ -423,7 +404,7 @@ class Data(
         )
 
     def post_data_schemas_schemas_resolve(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/schemas/schemas/resolve."""
         return self._request(
@@ -433,8 +414,8 @@ class Data(
             body=body,
         )
 
-    def post_data_serving_serving_products(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_product(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/serving/serving/products."""
         return self._request(
@@ -444,23 +425,23 @@ class Data(
             body=body,
         )
 
-    def post_data_serving_serving_products_by_param_1_refreshes(
+    def create_refresh_for_product(
         self,
-        param_1: str,
+        product_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /data/serving/serving/products/{param}/refreshes."""
         return self._request(
             Operation("POST", "/data/serving/serving/products/{param}/refreshes"),
-            path_params=(param_1,),
+            path_params=(product_id,),
             query=query,
             body=body,
         )
 
-    def post_data_streams_streams(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_stream(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/streams/streams."""
         return self._request(
@@ -470,23 +451,23 @@ class Data(
             body=body,
         )
 
-    def post_data_streams_streams_by_param_1_deliveries(
+    def create_delivery_for_stream(
         self,
-        param_1: str,
+        stream_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /data/streams/streams/{param}/deliveries."""
         return self._request(
             Operation("POST", "/data/streams/streams/{param}/deliveries"),
-            path_params=(param_1,),
+            path_params=(stream_id,),
             query=query,
             body=body,
         )
 
-    def post_data_sync_sync_jobs(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_job(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/sync/sync/jobs."""
         return self._request(
@@ -496,23 +477,23 @@ class Data(
             body=body,
         )
 
-    def post_data_sync_sync_jobs_by_param_1_executions(
+    def create_execution_for_job(
         self,
-        param_1: str,
+        job_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /data/sync/sync/jobs/{param}/executions."""
         return self._request(
             Operation("POST", "/data/sync/sync/jobs/{param}/executions"),
-            path_params=(param_1,),
+            path_params=(job_id,),
             query=query,
             body=body,
         )
 
-    def post_data_transformations_transformations(
-        self, *, query: QueryParams | None = None, body: RequestBody = None
+    def create_transformation(
+        self, *, query: QueryParams | None = None, body: RequestBodyInput = UNSET
     ) -> JSONResultT:
         """Call POST /data/transformations/transformations."""
         return self._request(
@@ -522,19 +503,19 @@ class Data(
             body=body,
         )
 
-    def post_data_transformations_transformations_by_param_1_executions(
+    def create_execution_for_transformation(
         self,
-        param_1: str,
+        transformation_id: str,
         *,
         query: QueryParams | None = None,
-        body: RequestBody = None,
+        body: RequestBodyInput = UNSET,
     ) -> JSONResultT:
         """Call POST /data/transformations/transformations/{param}/executions."""
         return self._request(
             Operation(
                 "POST", "/data/transformations/transformations/{param}/executions"
             ),
-            path_params=(param_1,),
+            path_params=(transformation_id,),
             query=query,
             body=body,
         )

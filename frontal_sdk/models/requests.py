@@ -11,4 +11,24 @@ QueryValue = Union[str, int, float, bool]
 QueryParams = Mapping[str, QueryValue]
 RequestBody = Union[JSONValue, BaseModel]
 
-__all__ = ["QueryParams", "QueryValue", "RequestBody"]
+
+class Unset:
+    """Sentinel type for an omitted JSON request body."""
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "UNSET"
+
+
+UNSET = Unset()
+RequestBodyInput = Union[RequestBody, Unset]
+
+__all__ = [
+    "QueryParams",
+    "QueryValue",
+    "RequestBody",
+    "RequestBodyInput",
+    "UNSET",
+    "Unset",
+]

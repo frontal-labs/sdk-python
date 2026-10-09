@@ -25,7 +25,7 @@ def process_agent_ids(
         if not normalized_id:
             continue
         try:
-            result = client.agents.get_agents_by_param_1(normalized_id)
+            result = client.agents.get(id=normalized_id)
         except FrontalError as error:
             failures += 1
             logger.error("agent lookup failed for %s: %s", normalized_id, error)
