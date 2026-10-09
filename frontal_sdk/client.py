@@ -25,7 +25,6 @@ from frontal_sdk.resources import (
     Observability,
     Ontology,
     Pipelines,
-    Sandbox,
     Schedules,
     SyncAI,
     Webhooks,
@@ -126,7 +125,6 @@ class Frontal:
         self.pipelines: Pipelines[JSONValue, bytes, Iterator[ServerEvent]] = Pipelines(
             http
         )
-        self.sandbox: Sandbox[JSONValue, bytes, Iterator[ServerEvent]] = Sandbox(http)
         self.schedules: Schedules[JSONValue, bytes, Iterator[ServerEvent]] = Schedules(
             http
         )
@@ -214,9 +212,6 @@ class AsyncFrontal:
         self.pipelines: Pipelines[
             _AsyncJSONResult, _AsyncBytesResult, _AsyncStreamResult
         ] = Pipelines(http)
-        self.sandbox: Sandbox[
-            _AsyncJSONResult, _AsyncBytesResult, _AsyncStreamResult
-        ] = Sandbox(http)
         self.schedules: Schedules[
             _AsyncJSONResult, _AsyncBytesResult, _AsyncStreamResult
         ] = Schedules(http)

@@ -10,7 +10,7 @@
 | `audit`, `auth`, `billing` | Audit events, authentication, and billing |
 | `blob`, `connectors`, `data` | Files, integrations, and data operations |
 | `governance`, `lineage`, `observability` | Governance, lineage, and telemetry |
-| `ontology`, `pipelines`, `sandbox` | Ontology, pipelines, and sandbox operations |
+| `ontology`, `pipelines` | Ontology and pipelines operations |
 | `schedules`, `webhooks` | Schedules and webhook operations |
 
 ## AI helpers

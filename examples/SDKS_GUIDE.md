@@ -46,7 +46,7 @@ asyncio.run(main())
 
 Clients expose `ai`, `agents`, `workflows`, `audit`, `auth`, `billing`, `blob`,
 `connectors`, `data`, `governance`, `lineage`, `observability`, `ontology`,
-`pipelines`, `sandbox`, `schedules`, and `webhooks`. The first three also
+`pipelines`, `schedules`, and `webhooks`. The first three also
 provide high-level helpers and validated builders. For example, create an agent
 with `client.agents.define(name).trigger(event).can_read(entity).create()` or
 define a workflow with `client.workflows.define(name).manual().task(...).create()`.
