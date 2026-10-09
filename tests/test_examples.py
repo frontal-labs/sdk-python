@@ -75,6 +75,41 @@ def test_agent_definition_example_with_mocked_api(
     assert route.called
 
 
+def test_function_example_with_mocked_api(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_api_key(monkeypatch)
+    with respx.mock(assert_all_called=False) as router:
+        create_route = router.post(f"{API_URL}/functions").mock(
+            return_value=httpx.Response(
+                201,
+                json={
+                    "id": "fn_1",
+                    "name": "hello-world",
+                    "runtime": "nodejs22",
+                    "entrypoint": "index.handler",
+                    "status": "draft",
+                    "version": 1,
+                    "createdAt": "2026-10-09T12:00:00Z",
+                    "updatedAt": "2026-10-09T12:00:00Z",
+                },
+            )
+        )
+        invoke_route = router.post(f"{API_URL}/functions/invoke").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "executionId": "exec_1",
+                    "result": {"message": "Hello, World!"},
+                    "status": "active",
+                },
+            )
+        )
+        runpy.run_path("examples/create_function.py", run_name="__main__")
+    assert create_route.called
+    assert invoke_route.called
+
+
 def test_workflow_example_with_mocked_api(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

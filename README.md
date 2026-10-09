@@ -6,7 +6,7 @@
 
 The `frontal` package provides synchronous and asynchronous Python clients for
 the Frontal API. Services are available on the client as typed attributes such
-as `client.ai`, `client.agents`, and `client.workflows`.
+as `client.ai`, `client.agents`, `client.functions`, and `client.workflows`.
 
 ## Install
 
@@ -54,7 +54,7 @@ environment header, and debug logging. The SDK does not load `.env` files.
 
 ## What is included
 
-- All 370 operations in `contracts/sdk-endpoints.json`, grouped by service.
+- All 383 operations in `contracts/sdk-endpoints.json`, grouped by service.
 - HTTPX sync and async transports with bounded GET retries, request IDs,
   pagination helpers, polling, raw bytes, multipart uploads, and SSE streams.
 - Pydantic v2 request models and validation for JSON-compatible payloads.
@@ -69,10 +69,14 @@ only when replaying that operation is safe. If you provide an `httpx.Client` or
 For JSON writes, omitting `body` sends no request body; pass `body=None` to send
 the JSON value `null`, and `body={}` to send an empty JSON object.
 
-The OpenAPI snapshots define the operation inventory but do not include
-service-specific request and response schemas for most endpoints. The SDK
-does not guess those payload shapes; define request models with `APIModel` and
-use `PageResult[T]` for paginated responses where applicable.
+The endpoint inventory records the SDK's hand-written routes. OpenAPI snapshots
+provide an additional contract baseline, but they omit the Functions routes
+and most endpoint-specific request and response schemas. The Functions models
+follow the TypeScript Functions package; other unmodeled operation payloads
+use the recursive `JSONValue` type.
+
+The [Functions API guide](docs/FUNCTIONS.md) covers function definitions,
+versions, deployment, invocation, execution results, and cancellation.
 
 The SDK uses resource-oriented names and semantic path arguments.
 

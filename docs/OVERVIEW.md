@@ -49,9 +49,9 @@ client to tune transport behavior. See [architecture](ARCHITECTURE.md) and
 
 Each client exposes the same service attributes:
 
-`ai`, `agents`, `workflows`, `audit`, `auth`, `billing`, `blob`, `connectors`,
-`data`, `governance`, `lineage`, `observability`, `ontology`, `pipelines`,
-`schedules`, and `webhooks`.
+`ai`, `agents`, `functions`, `workflows`, `audit`, `auth`, `billing`, `blob`,
+`connectors`, `data`, `governance`, `lineage`, `observability`, `ontology`,
+`pipelines`, `schedules`, and `webhooks`.
 
 The AI service adds normalized helpers such as `generate_text`, `stream_text`,
 `embed`, `generate_object`, `generate_speech`, `generate_image`,
@@ -63,8 +63,8 @@ endpoint methods from the SDK inventory.
 ## Types and API boundaries
 
 Public models are exported from `frontal_sdk` and `frontal_sdk.models`. The
-client validates typed AI, agent, workflow, pagination, and error boundaries
-with Pydantic. Many raw API operations have no operation-specific schema in the
-OpenAPI snapshots, so their request and response values use the recursive
-`JSONValue` type rather than guessed models. See [API resources](RESOURCES.md)
+client validates typed AI, agent, Functions, workflow, pagination, and error
+boundaries with Pydantic. Many raw API operations have no operation-specific
+schema in the OpenAPI snapshots, so their request and response values use the
+recursive `JSONValue` type rather than guessed models. See [API resources](RESOURCES.md)
 for route naming and payload conventions.

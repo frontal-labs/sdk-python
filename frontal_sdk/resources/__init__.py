@@ -8,6 +8,7 @@ from frontal_sdk.resources.billing import Billing
 from frontal_sdk.resources.blob import Blob
 from frontal_sdk.resources.connectors import Connectors
 from frontal_sdk.resources.data import Data
+from frontal_sdk.resources.functions import FunctionAccessor, FunctionBuilder, Functions
 from frontal_sdk.resources.governance import Governance
 from frontal_sdk.resources.lineage import Lineage
 from frontal_sdk.resources.observability import Observability
@@ -36,6 +37,9 @@ __all__ = [
     "Blob",
     "Connectors",
     "Data",
+    "FunctionAccessor",
+    "FunctionBuilder",
+    "Functions",
     "Governance",
     "Lineage",
     "Observability",

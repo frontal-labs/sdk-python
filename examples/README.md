@@ -9,6 +9,7 @@ Each script closes its HTTPX client when finished.
 | [`quickstart.py`](./quickstart.py) | Synchronous text generation |
 | [`async_quickstart.py`](./async_quickstart.py) | Async text generation with `AsyncFrontal` |
 | [`define_agent.py`](./define_agent.py) | Validated agent builder and scoped access |
+| [`create_function.py`](./create_function.py) | Function definition and invocation |
 | [`create_workflow.py`](./create_workflow.py) | Workflow creation and triggering an execution |
 
 Run scripts from the repository root after installing the development extra:
@@ -18,6 +19,7 @@ uv sync --extra dev
 uv run python examples/quickstart.py
 uv run python examples/async_quickstart.py
 uv run python examples/define_agent.py
+uv run python examples/create_function.py
 uv run python examples/create_workflow.py
 ```
 

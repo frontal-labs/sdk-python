@@ -6,6 +6,7 @@
 | --- | --- |
 | `ai` | AI generation and gateway operations |
 | `agents` | Agent definitions and runs |
+| `functions` | Function definitions, versions, deployments, and executions |
 | `workflows` | Workflow definitions and executions |
 | `audit`, `auth`, `billing` | Audit events, authentication, and billing |
 | `blob`, `connectors`, `data` | Files, integrations, and data operations |
@@ -58,6 +59,17 @@ immediately with `.activate()`. `client.workflows.use(workflow_id)` can trigger
 an execution, list executions, and poll one to a terminal state. The same
 accessors work with `AsyncFrontal`; await their results and use `async for` for
 streams.
+
+## Functions
+
+Use `client.functions.define(name)` to build and create a validated function,
+or pass a `FunctionDefinition` to `client.functions.create()`. Invoke a
+function with `client.functions.executions.invoke()` or start an asynchronous
+execution with `invoke_async()`. Versions, deployment status, results, and
+cancellation are grouped under `client.functions.versions`,
+`client.functions.deployments`, and `client.functions.executions`. The sync and
+async clients expose the same methods. See the [Functions API guide](FUNCTIONS.md)
+for fields, configuration, errors, and an end-to-end example.
 
 ## Endpoint methods
 

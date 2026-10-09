@@ -20,6 +20,7 @@ from frontal_sdk.resources import (
     Blob,
     Connectors,
     Data,
+    Functions,
     Governance,
     Lineage,
     Observability,
@@ -112,6 +113,9 @@ class Frontal:
             Connectors(http)
         )
         self.data: Data[JSONValue, bytes, Iterator[ServerEvent]] = Data(http)
+        self.functions: Functions[JSONValue, bytes, Iterator[ServerEvent]] = Functions(
+            http
+        )
         self.governance: Governance[JSONValue, bytes, Iterator[ServerEvent]] = (
             Governance(http)
         )
@@ -197,6 +201,9 @@ class AsyncFrontal:
         self.data: Data[_AsyncJSONResult, _AsyncBytesResult, _AsyncStreamResult] = Data(
             http
         )
+        self.functions: Functions[
+            _AsyncJSONResult, _AsyncBytesResult, _AsyncStreamResult
+        ] = Functions(http)
         self.governance: Governance[
             _AsyncJSONResult, _AsyncBytesResult, _AsyncStreamResult
         ] = Governance(http)
