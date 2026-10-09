@@ -79,6 +79,27 @@ InputT = TypeVar("InputT")
 OutputT = TypeVar("OutputT")
 
 
+def _generate_object_result(
+    raw_response: JSONValue,
+    schema: type[BaseModel] | TypeAdapter[Any] | Mapping[str, JSONValue],
+) -> GenerateObjectResult[Any]:
+    response = ChatCompletionResponse.model_validate(raw_response)
+    content = response.choices[0].message.content if response.choices else None
+    if not content:
+        raise ValueError("No content generated")
+    value = _validate_object(schema, json.loads(content))
+    return GenerateObjectResult[Any](
+        object=value, usage=_response_usage(response.usage)
+    )
+
+
+def _validate_generation_retries(max_retries: int) -> None:
+    if isinstance(max_retries, bool) or not isinstance(max_retries, int):
+        raise TypeError("max_retries must be an integer")
+    if not 0 <= max_retries <= 10:
+        raise ValueError("max_retries must be between 0 and 10")
+
+
 class AI(
     APIResource[JSONResultT, BytesResultT, StreamResultT],
     Generic[JSONResultT, BytesResultT, StreamResultT],
@@ -867,28 +888,15 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
         Each retry issues the generation POST again and may incur additional
         work or cost; use retries only when that replay is acceptable.
         """
-        if isinstance(max_retries, bool) or not isinstance(max_retries, int):
-            raise TypeError("max_retries must be an integer")
-        if not 0 <= max_retries <= 10:
-            raise ValueError("max_retries must be between 0 and 10")
+        _validate_generation_retries(max_retries)
         body = _object_request(model, prompt, schema, temperature)
         last_error: Exception | None = None
         for attempt in range(max_retries + 1):
             if attempt:
                 time.sleep(0.5)
             try:
-                response = ChatCompletionResponse.model_validate(
-                    self.create_completion(body=body)
-                )
-                content = (
-                    response.choices[0].message.content if response.choices else None
-                )
-                if not content:
-                    raise ValueError("No content generated")
-                value = _validate_object(schema, json.loads(content))
-                return GenerateObjectResult[Any](
-                    object=value,
-                    usage=_response_usage(response.usage),
+                return _generate_object_result(
+                    self.create_completion(body=body), schema
                 )
             except FrontalError as error:
                 if not error.transient:
@@ -1190,28 +1198,15 @@ class AsyncAI(
         Each retry issues the generation POST again and may incur additional
         work or cost; use retries only when that replay is acceptable.
         """
-        if isinstance(max_retries, bool) or not isinstance(max_retries, int):
-            raise TypeError("max_retries must be an integer")
-        if not 0 <= max_retries <= 10:
-            raise ValueError("max_retries must be between 0 and 10")
+        _validate_generation_retries(max_retries)
         body = _object_request(model, prompt, schema, temperature)
         last_error: Exception | None = None
         for attempt in range(max_retries + 1):
             if attempt:
                 await anyio.sleep(0.5)
             try:
-                response = ChatCompletionResponse.model_validate(
-                    await self.create_completion(body=body)
-                )
-                content = (
-                    response.choices[0].message.content if response.choices else None
-                )
-                if not content:
-                    raise ValueError("No content generated")
-                value = _validate_object(schema, json.loads(content))
-                return GenerateObjectResult[Any](
-                    object=value,
-                    usage=_response_usage(response.usage),
+                return _generate_object_result(
+                    await self.create_completion(body=body), schema
                 )
             except FrontalError as error:
                 if not error.transient:
