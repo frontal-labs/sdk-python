@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from frontal_sdk.core.errors import error_for_status, FrontalError, RateLimitError
-
+from frontal_sdk.core.errors import FrontalError, RateLimitError, error_for_status
 
 __all__ = ["error_for_status", "FrontalError", "RateLimitError"]

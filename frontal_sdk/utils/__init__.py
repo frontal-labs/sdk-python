@@ -9,19 +9,27 @@ Available utilities:
 - ``constants`` — SDK-wide constants (see :mod:`frontal_sdk.utils.constants`)
 - ``errors`` — error helpers (see :mod:`frontal_sdk.utils.errors`)
 """
+
+from frontal_sdk.utils.circuit_breaker import (  # noqa: F401
+    CircuitBreaker,
+    CircuitBreakerConfig,
+)
 from frontal_sdk.utils.constants import (  # noqa: F401
     API_KEY_PREFIX,
-    DEFAULT_BASE_URL,
-    SDK_VERSION,
-    DEFAULT_RETRY_ON,
-    TRANSIENT_STATUS,
     BREAKER_FAILURE_STATUS,
+    DEFAULT_BASE_URL,
+    DEFAULT_RETRY_ON,
     EXPONENTIAL_BASE,
     JITTER_MAX,
+    SDK_VERSION,
+    TRANSIENT_STATUS,
 )
-from frontal_sdk.utils.errors import error_for_status, FrontalError, RateLimitError  # noqa: F401
-from frontal_sdk.utils.retry import calculate_delay, BackoffStrategy  # noqa: F401
-from frontal_sdk.utils.circuit_breaker import CircuitBreaker, CircuitBreakerConfig  # noqa: F401
+from frontal_sdk.utils.errors import (  # noqa: F401
+    FrontalError,
+    RateLimitError,
+    error_for_status,
+)
+from frontal_sdk.utils.retry import BackoffStrategy, calculate_delay  # noqa: F401
 
 __all__ = [
     "API_KEY_PREFIX",
