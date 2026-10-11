@@ -267,6 +267,7 @@ class AgentRuns(Generic[JSONResultT, BytesResultT, StreamResultT]):
         self._agents = agents
 
     def list(self, *, agent_id: str, query: QueryParams | None = None) -> JSONResultT:
+        """List runs for one agent, optionally filtered by ``query``."""
         return self._agents._list_agent_runs(agent_id, query=query)
 
     def create(
@@ -276,15 +277,19 @@ class AgentRuns(Generic[JSONResultT, BytesResultT, StreamResultT]):
         body: RequestBodyInput = UNSET,
         query: QueryParams | None = None,
     ) -> JSONResultT:
+        """Start a new run for one agent with the given request body."""
         return self._agents._create_run_for_agent(agent_id, body=body, query=query)
 
     def get(self, id: str, *, query: QueryParams | None = None) -> JSONResultT:
+        """Get a single run by id."""
         return self._agents._get_run(id, query=query)
 
     def conversation(self, id: str, *, query: QueryParams | None = None) -> JSONResultT:
+        """Get the conversation transcript for a run by id."""
         return self._agents._get_run_conversation(id, query=query)
 
     def stream(self, id: str, *, query: QueryParams | None = None) -> StreamResultT:
+        """Stream server-sent events for a run by id."""
         return self._agents._stream_run(id, query=query)
 
 
@@ -297,6 +302,7 @@ class AgentVersions(Generic[JSONResultT, BytesResultT, StreamResultT]):
         self._agents = agents
 
     def list(self, *, agent_id: str, query: QueryParams | None = None) -> JSONResultT:
+        """List versions for one agent, optionally filtered by ``query``."""
         return self._agents._list_agent_versions(agent_id, query=query)
 
 
@@ -371,12 +377,18 @@ class AgentBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def description(
         self, text: str
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set a human-readable description of the agent's purpose."""
         self._values["description"] = text
         return self
 
     def trigger(
         self, event: str, filter: Mapping[str, JSONValue] | None = None
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Add an event trigger; the agent fires when the event occurs.
+
+        Multiple triggers may be added; ``filter`` optionally restricts
+        the event payload fields that activate the agent.
+        """
         triggers = cast(list[JSONValue], self._values["triggers"])
         trigger: dict[str, JSONValue] = {"event": event}
         if filter is not None:
@@ -387,6 +399,7 @@ class AgentBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def scope(
         self, value: AgentScope | Mapping[str, JSONValue]
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the agent's permission scope from a model or mapping."""
         self._scope = (
             value if isinstance(value, AgentScope) else AgentScope.model_validate(value)
         )
@@ -395,30 +408,35 @@ class AgentBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def can_read(
         self, *entity_types: str
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Grant the agent read access to the given entity types."""
         self._scope.read.extend(entity_types)
         return self
 
     def can_write(
         self, *entity_types: str
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Grant the agent write access to the given entity types."""
         self._scope.write.extend(entity_types)
         return self
 
     def can_invoke(
         self, *actions: str
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Grant the agent permission to invoke the given actions."""
         self._scope.actions.extend(actions)
         return self
 
     def escalates_on(
         self, *conditions: str
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Add escalation conditions that route the run to a human."""
         self._scope.escalate.extend(conditions)
         return self
 
     def confidence(
         self, value: ConfidenceConfig | Mapping[str, JSONValue]
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set confidence thresholds from a model or mapping."""
         self._confidence = (
             value
             if isinstance(value, ConfidenceConfig)
@@ -429,18 +447,21 @@ class AgentBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def auto_execute_above(
         self, threshold: float
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Auto-execute without approval when confidence is above this."""
         self._confidence.auto_execute_above = threshold
         return self
 
     def escalate_below(
         self, threshold: float
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Escalate to a human when confidence falls below this."""
         self._confidence.escalate_below = threshold
         return self
 
     def memory(
         self, value: MemoryConfig | Mapping[str, JSONValue]
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the agent's memory configuration from a model or mapping."""
         self._memory = (
             value
             if isinstance(value, MemoryConfig)
@@ -451,6 +472,7 @@ class AgentBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def retry(
         self, value: RetryConfig | Mapping[str, JSONValue]
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the agent's retry policy from a model or mapping."""
         self._retry = (
             value
             if isinstance(value, RetryConfig)
@@ -461,12 +483,14 @@ class AgentBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def timeout(
         self, duration: str
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the maximum run duration (e.g. ``"5m"``, ``"30s"``)."""
         self._values["timeout"] = duration
         return self
 
     def rate_limit(
         self, value: AgentRateLimit | Mapping[str, JSONValue]
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the agent's rate limit from a model or mapping."""
         model = (
             value
             if isinstance(value, AgentRateLimit)
@@ -480,6 +504,7 @@ class AgentBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def tags(
         self, *tags: str
     ) -> AgentBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Attach free-text tags used for filtering in list calls."""
         self._values["tags"] = [*cast(list[str], self._values["tags"]), *tags]
         return self
 
@@ -526,15 +551,19 @@ class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         return self._approve_when(state) if self._approve_when is not None else False
 
     def get(self) -> JSONResultT:
+        """Get this agent's current definition from the API."""
         return self._agents.get(id=self.id)
 
     def update(self, definition: Mapping[str, JSONValue]) -> JSONResultT:
+        """Replace this agent's definition with the given fields."""
         return self._agents.update(id=self.id, body=dict(definition))
 
     def delete(self) -> JSONResultT:
+        """Delete this agent."""
         return self._agents.delete(id=self.id)
 
     def rollback(self, *, to_version: int | None = None) -> JSONResultT:
+        """Roll back this agent, optionally to a specific version."""
         body: dict[str, JSONValue] = {}
         if to_version is not None:
             body["toVersion"] = to_version
@@ -543,6 +572,7 @@ class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def versions(
         self, *, limit: int | None = None, cursor: str | None = None
     ) -> JSONResultT:
+        """List this agent's versions with optional pagination."""
         query: dict[str, str | int] = {}
         if limit is not None:
             query["limit"] = limit
@@ -559,6 +589,7 @@ class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         limit: int | None = None,
         cursor: str | None = None,
     ) -> JSONResultT:
+        """List this agent's runs, optionally filtered by status or time."""
         query: dict[str, str | int] = {}
         for key, value in (
             ("status", status),
@@ -572,6 +603,7 @@ class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         return self._agents.runs.list(agent_id=self.id, query=query)
 
     def run(self, run_id: str) -> JSONResultT:
+        """Get a single run of this agent by id."""
         return self._agents.runs.get(run_id)
 
     def wait_for_completion(
@@ -615,9 +647,11 @@ class AgentAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         return cast(JSONResultT, current)
 
     def conversation(self, run_id: str) -> JSONResultT:
+        """Get the conversation transcript for one run by id."""
         return self._agents.runs.conversation(run_id)
 
     def message(self, event: str, payload: Mapping[str, JSONValue]) -> JSONResultT:
+        """Send an event message to this agent and start a run."""
         body: dict[str, JSONValue] = {"event": event, "payload": dict(payload)}
         return self._agents.runs.create(agent_id=self.id, body=body)
 
