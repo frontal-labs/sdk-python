@@ -2,9 +2,9 @@
   "repository": "sdk-python",
   "language": "Python",
   "status": "implemented",
-  "matched": 383,
-  "unmatched": 0,
-  "note": "Hand-written resource methods match contracts/sdk-endpoints.json. Payloads use the validated JSON boundary where operation schemas are absent.",
+  "inventoryMethodsImplemented": 383,
+  "inventoryMethodsUnimplemented": 0,
+  "note": "inventoryMethodsImplemented counts contracts/sdk-endpoints.json entries backed by hand-written resource methods; inventoryMethodsUnimplemented counts entries with no method. Snapshot conformance is reported separately under openapiConformance.",
   "openapiConformance": {
     "api": {
       "snapshotOperations": 383,
