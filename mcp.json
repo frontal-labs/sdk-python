@@ -5,6 +5,22 @@
   "status": "stable",
   "documents": [
     {
+      "path": ".claude/rules/sdk-language.md",
+      "title": "sdk-language"
+    },
+    {
+      "path": ".cursor/README.md",
+      "title": "README"
+    },
+    {
+      "path": ".cursor/commands/review-sdk-contract.md",
+      "title": "review-sdk-contract"
+    },
+    {
+      "path": ".cursor/commands/verify-sdk-change.md",
+      "title": "verify-sdk-change"
+    },
+    {
       "path": ".github/BRANCH_PROTECTION.md",
       "title": "BRANCH PROTECTION"
     },
@@ -13,12 +29,20 @@
       "title": "PULL REQUEST TEMPLATE"
     },
     {
+      "path": ".vscode/README.md",
+      "title": "README"
+    },
+    {
       "path": "AGENTS.md",
       "title": "AGENTS"
     },
     {
       "path": "CHANGELOG.md",
       "title": "CHANGELOG"
+    },
+    {
+      "path": "CLAUDE.md",
+      "title": "CLAUDE"
     },
     {
       "path": "CODE_OF_CONDUCT.md",
@@ -63,6 +87,10 @@
     {
       "path": "docs/ENTERPRISE_READINESS.md",
       "title": "ENTERPRISE READINESS"
+    },
+    {
+      "path": "docs/FUNCTIONS.md",
+      "title": "FUNCTIONS"
     },
     {
       "path": "docs/GETTING_STARTED.md",
@@ -117,8 +145,84 @@
       "title": "README"
     },
     {
+      "path": "skills/SOURCES.md",
+      "title": "SOURCES"
+    },
+    {
       "path": "skills/frontal-sdk/SKILL.md",
       "title": "SKILL"
+    },
+    {
+      "path": "skills/python-lint/SKILL.md",
+      "title": "SKILL"
+    },
+    {
+      "path": "skills/python-lint/references/migration.md",
+      "title": "migration"
+    },
+    {
+      "path": "skills/python-lint/references/rule-selection.md",
+      "title": "rule-selection"
+    },
+    {
+      "path": "skills/python-packaging/SKILL.md",
+      "title": "SKILL"
+    },
+    {
+      "path": "skills/python-packaging/references/build-backends.md",
+      "title": "build-backends"
+    },
+    {
+      "path": "skills/python-pydantic-httpx-contracts/SKILL.md",
+      "title": "SKILL"
+    },
+    {
+      "path": "skills/python-supply-chain/SKILL.md",
+      "title": "SKILL"
+    },
+    {
+      "path": "skills/python-supply-chain/references/dependabot.md",
+      "title": "dependabot"
+    },
+    {
+      "path": "skills/python-supply-chain/references/scanning-and-provenance.md",
+      "title": "scanning-and-provenance"
+    },
+    {
+      "path": "skills/python-sync-async-clients/SKILL.md",
+      "title": "SKILL"
+    },
+    {
+      "path": "skills/python-testing/SKILL.md",
+      "title": "SKILL"
+    },
+    {
+      "path": "skills/python-testing/references/beyond-coverage.md",
+      "title": "beyond-coverage"
+    },
+    {
+      "path": "skills/python-testing/references/configuration.md",
+      "title": "configuration"
+    },
+    {
+      "path": "skills/python-testing/references/multi-version.md",
+      "title": "multi-version"
+    },
+    {
+      "path": "skills/python-typing/SKILL.md",
+      "title": "SKILL"
+    },
+    {
+      "path": "skills/python-typing/references/checker-selection.md",
+      "title": "checker-selection"
+    },
+    {
+      "path": "skills/python-typing/references/py-typed-distribution.md",
+      "title": "py-typed-distribution"
+    },
+    {
+      "path": "skills/python-typing/references/strictness-ratchet.md",
+      "title": "strictness-ratchet"
     },
     {
       "path": "templates/README.md",
