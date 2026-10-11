@@ -14,5 +14,15 @@ The published `api.openapi.json` snapshot is a pinned upstream baseline
 (`sha256` in `openapi/manifest.json`) that covers a subset of the API with a
 different path vocabulary than the SDK implements, so the checker reports
 inventory operations absent from the snapshot and snapshot operations outside
-the inventory as informational drift, not failures. Update
-`coverage-floor.json` when the matched baseline legitimately changes.
+the inventory as informational drift, not failures. The report breaks the
+drift down per domain so it is actionable. Update `coverage-floor.json` when
+the matched baseline legitimately changes.
+
+`api.openapi.json` is shared byte-for-byte with the TypeScript SDK
+(`sdk-typescript/contracts/openapi/api.openapi.json`). That repository's
+manifest pins the upstream artifact as `sha256 c4603577…` while both
+repositories committed `ca5f245…`, and `https://openapi.frontal.dev` no longer
+serves the spec, so the committed snapshot predates the upstream baseline it
+should track. Refreshing it is an upstream action: republish the artifact,
+copy it in unchanged, and update the `sha256` in `openapi/manifest.json`. The
+drift lines and `coverage-floor.json` then recompute automatically.
