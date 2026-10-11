@@ -2,21 +2,19 @@
 
 This is useful for quick diagnostics, testing, and documentation purposes.
 """
+
 from __future__ import annotations
 
-import sys
-from frontal_sdk import __version__, Frontal
+import os
+
+from frontal_sdk import __version__
 
 DEFAULT_API_KEY_ENV = "FRONTAL_API_KEY"
 
 
 def _check_api_key() -> bool:
     """Check if a Frontal API key is available in the environment."""
-    import os
-    return bool(
-        os.environ.get("FRONTAL_API_KEY")
-        or os.environ.get("FRONTAL_API_KEY_OLD")
-    )
+    return bool(os.environ.get(DEFAULT_API_KEY_ENV))
 
 
 def main() -> None:
