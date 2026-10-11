@@ -6,7 +6,7 @@ from __future__ import annotations
 import ast
 import json
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -310,13 +310,24 @@ def main() -> None:
     if missing_from_spec:
         print(
             f"OpenAPI baseline drift: {len(missing_from_spec)} inventory "
-            "operations are absent from the published snapshots"
+            "operations are absent from the published snapshots "
+            "(see contracts/README.md)"
         )
+        drift_counts = Counter(domain for domain, _method, _path in missing_from_spec)
+        for domain in sorted(drift_counts):
+            print(f"  {domain}: {drift_counts[domain]} operations")
     if uncovered_spec["api"] or uncovered_spec["ai"]:
         print(
             "OpenAPI operations not exposed by the endpoint inventory: "
-            f"api {len(uncovered_spec['api'])}, ai {len(uncovered_spec['ai'])}"
+            f"api {len(uncovered_spec['api'])}, ai {len(uncovered_spec['ai'])} "
+            "(see contracts/README.md)"
         )
+        uncovered_counts = Counter(
+            "/".join(path.strip("/").split("/")[:2])
+            for _method, path in (*uncovered_spec["api"], *uncovered_spec["ai"])
+        )
+        for group in sorted(uncovered_counts):
+            print(f"  {group}: {uncovered_counts[group]} operations")
     for surface, actual in coverage.items():
         floor = coverage_floor[surface]
         if actual[0] < floor:
