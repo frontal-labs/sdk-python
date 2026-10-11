@@ -10,7 +10,6 @@ _RETRYABLE_STATUS = {408, 425, 429, 500, 502, 503, 504}
 
 
 class _ErrorContext(TypedDict, total=False):
-    code: str | None
     request_id: str | None
     status_code: int | None
     details: JSONValue
@@ -160,33 +159,28 @@ def error_for_status(
             if effective_code in {"UNAUTHORIZED", "INVALID_API_KEY"}
             else None
         )
-        return AuthenticationError(
-            message,
-            code=effective_code,
-            fix=fix,
-            **arguments
-        )
+        return AuthenticationError(message, code=effective_code, fix=fix, **arguments)
     if status_code == 404:
         return NotFoundError(
             message,
             code=effective_code,
             fix=(
-                "Verify the resource id and that it belongs to this workspace/environment."
+                "Verify the resource id belongs to this workspace/environment."
                 if effective_code == "NOT_FOUND"
                 else None
             ),
-            **arguments
+            **arguments,
         )
     if status_code == 409:
         return ConflictError(
             message,
             code=effective_code,
             fix=(
-                "Inspect `fields` for the offending properties and fix the request payload."
+                "Fix the offending properties listed in `fields`."
                 if effective_code == "VALIDATION_ERROR"
                 else None
             ),
-            **arguments
+            **arguments,
         )
     if status_code == 429:
         return RateLimitError(
@@ -194,22 +188,22 @@ def error_for_status(
             code=effective_code,
             retry_after=retry_after,
             fix=(
-                "Back off and retry after the `retryAfter` interval, or lower request concurrency."
+                "Back off and retry after `retryAfter`, or lower concurrency."
                 if effective_code == "RATE_LIMITED"
                 else None
             ),
-            **arguments
+            **arguments,
         )
     if status_code in {400, 422}:
         return ValidationError(
             message,
             code=effective_code,
             fix=(
-                "Inspect `fields` for the offending properties and fix the request payload."
+                "Fix the offending properties listed in `fields`."
                 if effective_code in {"BAD_REQUEST", "VALIDATION_ERROR"}
                 else None
             ),
-            **arguments
+            **arguments,
         )
     if status_code >= 500:
         return ServerError(
@@ -220,21 +214,12 @@ def error_for_status(
                 if effective_code in {"SERVICE_UNAVAILABLE", "INTERNAL_ERROR"}
                 else None
             ),
-            **arguments
+            **arguments,
         )
     # For unmapped status codes return a generic FrontalError carrying the
     # API's error code when known.
-    fix = (
-        "Check the API response for details."
-        if effective_code is None
-        else None
-    )
-    return FrontalError(
-        message,
-        code=effective_code,
-        fix=fix,
-        **arguments
-    )
+    fix = "Check the API response for details." if effective_code is None else None
+    return FrontalError(message, code=effective_code, fix=fix, **arguments)
 
 
 __all__ = [
