@@ -1,5 +1,6 @@
 # Python documentation
 
+- [Getting started](GETTING_STARTED.md) — install, first request, agents, streaming, and errors.
 - [Overview](OVERVIEW.md) — install, clients, service attributes, and type boundaries.
 - [Architecture](ARCHITECTURE.md) — package layout, config, transport, and retries.
 - [API resources](RESOURCES.md) — AI helpers, builders, and endpoint methods.

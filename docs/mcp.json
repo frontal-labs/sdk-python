@@ -65,6 +65,10 @@
       "title": "ENTERPRISE READINESS"
     },
     {
+      "path": "docs/GETTING_STARTED.md",
+      "title": "GETTING STARTED"
+    },
+    {
       "path": "docs/ONBOARDING.md",
       "title": "ONBOARDING"
     },
