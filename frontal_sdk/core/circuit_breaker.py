@@ -32,9 +32,8 @@ class CircuitBreakerConfig:
     on_half_open: Callable[[], None] | None = None
 
     def __post_init__(self) -> None:
-        if (
-            isinstance(self.failure_threshold, bool)
-            or not isinstance(self.failure_threshold, int)
+        if isinstance(self.failure_threshold, bool) or not isinstance(
+            self.failure_threshold, int
         ):
             raise TypeError("failure_threshold must be an integer")
         if self.failure_threshold < 1:
@@ -163,9 +162,7 @@ class CircuitBreaker:
             if self._state == "open":
                 elapsed = time.monotonic() - self._last_failure
                 if elapsed <= self._config.reset_timeout:
-                    raise CircuitBreakerOpenError(
-                        self._config.reset_timeout - elapsed
-                    )
+                    raise CircuitBreakerOpenError(self._config.reset_timeout - elapsed)
                 self._state = "half_open"
                 if self._config.on_half_open is not None:
                     self._config.on_half_open()

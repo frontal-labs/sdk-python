@@ -14,11 +14,12 @@ Typical usage::
         result = client.ai.generate_text(...)
         runs = client.workflows.use("wf_123").executions()
 """
+
 from frontal_sdk.resources import (  # noqa: F401
-    Agents,
+    AI,
     AgentAccessor,
     AgentBuilder,
-    AI,
+    Agents,
     AsyncAI,
     Audit,
     Auth,
@@ -35,14 +36,14 @@ from frontal_sdk.resources import (  # noqa: F401
     Ontology,
     Pipelines,
     Schedules,
+    SyncAI,
     Webhooks,
     WorkflowAccessor,
     WorkflowApprovals,
     WorkflowBuilder,
+    Workflows,
     WorkflowSteps,
     WorkflowTemplates,
-    Workflows,
-    SyncAI,
     tool,
 )
 
