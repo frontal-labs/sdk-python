@@ -15,6 +15,7 @@ from frontal_sdk import (
     APIModel,
     AsyncFrontal,
     AuthenticationError,
+    ConflictError,
     Frontal,
     FrontalError,
     GenerateImageResult,
@@ -22,6 +23,7 @@ from frontal_sdk import (
     GenerateTextResult,
     MultipartPart,
     NetworkError,
+    NotFoundError,
     PageResult,
     RateLimitError,
     ServerError,
@@ -205,6 +207,128 @@ def test_nonstandard_error_json_is_preserved(respx_mock: respx.Router) -> None:
         client._http.request(operation)
 
     assert raised.value.details == {"error": "invalid input", "field": "name"}
+    client.close()
+
+
+@pytest.mark.parametrize(
+    ("status_code", "code", "error_type", "expected_fix"),
+    [
+        (
+            401,
+            "UNAUTHORIZED",
+            AuthenticationError,
+            "Check FRONTAL_API_KEY — it must be a valid key starting with frt_.",
+        ),
+        (
+            403,
+            "INVALID_API_KEY",
+            AuthenticationError,
+            "Check FRONTAL_API_KEY — it must be a valid key starting with frt_.",
+        ),
+        (
+            404,
+            "NOT_FOUND",
+            NotFoundError,
+            "Verify the resource id belongs to this workspace/environment.",
+        ),
+        (
+            409,
+            "VALIDATION_ERROR",
+            ConflictError,
+            "Fix the offending properties listed in `fields`.",
+        ),
+        (
+            429,
+            "RATE_LIMITED",
+            RateLimitError,
+            "Back off and retry after `retryAfter`, or lower concurrency.",
+        ),
+        (
+            400,
+            "BAD_REQUEST",
+            ValidationError,
+            "Fix the offending properties listed in `fields`.",
+        ),
+        (
+            422,
+            "VALIDATION_ERROR",
+            ValidationError,
+            "Fix the offending properties listed in `fields`.",
+        ),
+        (
+            500,
+            "INTERNAL_ERROR",
+            ServerError,
+            "Service is temporarily unavailable; retry with backoff.",
+        ),
+        (
+            503,
+            "SERVICE_UNAVAILABLE",
+            ServerError,
+            "Service is temporarily unavailable; retry with backoff.",
+        ),
+    ],
+)
+def test_error_fix_hints_are_reported_for_known_codes(
+    respx_mock: respx.Router,
+    status_code: int,
+    code: str,
+    error_type: type[FrontalError],
+    expected_fix: str,
+) -> None:
+    respx_mock.get(f"{API_URL}/failure").mock(
+        return_value=httpx.Response(
+            status_code, json={"code": code, "message": "rejected"}
+        )
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+    operation = Operation("GET", "/failure")
+
+    with pytest.raises(error_type) as raised:
+        client._http.request(operation)
+
+    assert raised.value.fix == expected_fix
+    client.close()
+
+
+@pytest.mark.parametrize(
+    ("status_code", "code"),
+    [
+        (404, "ARCHIVED"),
+        (409, "STATE_CONFLICT"),
+        (429, "QUOTA_EXCEEDED"),
+        (418, "TEAPOT"),
+    ],
+)
+def test_error_fix_hint_is_absent_for_unmapped_codes(
+    respx_mock: respx.Router, status_code: int, code: str
+) -> None:
+    respx_mock.get(f"{API_URL}/failure").mock(
+        return_value=httpx.Response(
+            status_code, json={"code": code, "message": "rejected"}
+        )
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+    operation = Operation("GET", "/failure")
+
+    with pytest.raises(FrontalError) as raised:
+        client._http.request(operation)
+
+    assert raised.value.fix is None
+    client.close()
+
+
+def test_generic_error_carries_fallback_fix_hint(respx_mock: respx.Router) -> None:
+    respx_mock.get(f"{API_URL}/failure").mock(
+        return_value=httpx.Response(418, json={"message": "teapot"})
+    )
+    client = Frontal("frt_local_key", max_retries=0)
+    operation = Operation("GET", "/failure")
+
+    with pytest.raises(FrontalError) as raised:
+        client._http.request(operation)
+
+    assert raised.value.fix == "Check the API response for details."
     client.close()
 
 
