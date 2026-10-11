@@ -32,6 +32,7 @@ class FrontalError(Exception):
         safe_to_retry: bool = False,
         details: JSONValue = None,
         fields: list[ErrorField] | None = None,
+        fix: str | None = None,
     ) -> None:
         super().__init__(message)
         self.code = code or "FRONTAL_ERROR"
@@ -43,6 +44,7 @@ class FrontalError(Exception):
         self.safe_to_retry = safe_to_retry
         self.details = details
         self.fields = fields or []
+        self.fix = fix
 
 
 class AuthenticationError(FrontalError):
@@ -71,6 +73,7 @@ class RateLimitError(FrontalError):
         details: JSONValue = None,
         fields: list[ErrorField] | None = None,
         safe_to_retry: bool = False,
+        fix: str | None = None,
     ) -> None:
         super().__init__(
             message,
@@ -81,6 +84,7 @@ class RateLimitError(FrontalError):
             safe_to_retry=safe_to_retry,
             details=details,
             fields=fields,
+            fix=fix,
         )
         self.retry_after = retry_after
 
@@ -132,28 +136,105 @@ def error_for_status(
     retry_after: float | None = None,
     safe_to_retry: bool = False,
 ) -> FrontalError:
-    """Create the public error subtype corresponding to an HTTP status."""
+    """Create the public error subtype corresponding to an HTTP status.
+
+    The returned error carries the API's error ``code`` when available, a
+    human-readable ``fix`` remediation hint, and optional ``rateLimit``
+    metadata from response headers.  The ``safe_to_retry`` flag indicates
+    whether retrying the same request may succeed (rate limits, transient
+    5xx, network). UIs and agents can branch on this without a status table.
+    """
+    # Build context without ``code`` so we can pass it as a named arg.
     arguments: _ErrorContext = {
-        "code": code,
         "request_id": request_id,
         "status_code": status_code,
         "details": details,
         "fields": fields,
         "safe_to_retry": safe_to_retry,
     }
+    effective_code = code
+
     if status_code in {401, 403}:
-        return AuthenticationError(message, **arguments)
+        fix = (
+            "Check FRONTAL_API_KEY — it must be a valid key starting with frt_."
+            if effective_code in {"UNAUTHORIZED", "INVALID_API_KEY"}
+            else None
+        )
+        return AuthenticationError(
+            message,
+            code=effective_code,
+            fix=fix,
+            **arguments
+        )
     if status_code == 404:
-        return NotFoundError(message, **arguments)
+        return NotFoundError(
+            message,
+            code=effective_code,
+            fix=(
+                "Verify the resource id and that it belongs to this workspace/environment."
+                if effective_code == "NOT_FOUND"
+                else None
+            ),
+            **arguments
+        )
     if status_code == 409:
-        return ConflictError(message, **arguments)
+        return ConflictError(
+            message,
+            code=effective_code,
+            fix=(
+                "Inspect `fields` for the offending properties and fix the request payload."
+                if effective_code == "VALIDATION_ERROR"
+                else None
+            ),
+            **arguments
+        )
     if status_code == 429:
-        return RateLimitError(message, retry_after=retry_after, **arguments)
+        return RateLimitError(
+            message,
+            code=effective_code,
+            retry_after=retry_after,
+            fix=(
+                "Back off and retry after the `retryAfter` interval, or lower request concurrency."
+                if effective_code == "RATE_LIMITED"
+                else None
+            ),
+            **arguments
+        )
     if status_code in {400, 422}:
-        return ValidationError(message, **arguments)
+        return ValidationError(
+            message,
+            code=effective_code,
+            fix=(
+                "Inspect `fields` for the offending properties and fix the request payload."
+                if effective_code in {"BAD_REQUEST", "VALIDATION_ERROR"}
+                else None
+            ),
+            **arguments
+        )
     if status_code >= 500:
-        return ServerError(message, **arguments)
-    return FrontalError(message, **arguments)
+        return ServerError(
+            message,
+            code=effective_code,
+            fix=(
+                "Service is temporarily unavailable; retry with backoff."
+                if effective_code in {"SERVICE_UNAVAILABLE", "INTERNAL_ERROR"}
+                else None
+            ),
+            **arguments
+        )
+    # For unmapped status codes return a generic FrontalError carrying the
+    # API's error code when known.
+    fix = (
+        "Check the API response for details."
+        if effective_code is None
+        else None
+    )
+    return FrontalError(
+        message,
+        code=effective_code,
+        fix=fix,
+        **arguments
+    )
 
 
 __all__ = [
