@@ -139,3 +139,55 @@ def test_workflow_example_with_mocked_api(
     assert create_route.called
     assert version_route.called
     assert trigger_route.called
+
+
+def test_stream_text_example_with_mocked_sse(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set_api_key(monkeypatch)
+    with respx.mock(assert_all_called=False) as router:
+        route = router.post(f"{API_URL}/ai/chat/completions").mock(
+            return_value=httpx.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                content=b"".join(
+                    f"data: {chunk}\n\n".encode()
+                    for chunk in (
+                        '{"choices": [{"delta": {"content": "one "}}]}',
+                        '{"choices": [{"delta": {"content": "two"},'
+                        ' "finishReason": "stop"}]}',
+                        '"[DONE]"',
+                    )
+                ),
+            )
+        )
+        runpy.run_path("examples/stream_text.py", run_name="__main__")
+    assert route.called
+
+
+def test_handle_errors_example_with_mocked_validation_error(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _set_api_key(monkeypatch)
+    with respx.mock(assert_all_called=False) as router:
+        route = router.get(f"{API_URL}/agents").mock(
+            return_value=httpx.Response(
+                400,
+                json={
+                    "code": "VALIDATION_ERROR",
+                    "message": "rejected",
+                    "requestId": "req_example",
+                    "fields": [
+                        {
+                            "field": "limit",
+                            "code": "REQUIRED",
+                            "message": "must be positive",
+                        }
+                    ],
+                },
+            )
+        )
+        runpy.run_path("examples/handle_errors.py", run_name="__main__")
+    assert route.called
+    assert "limit: must be positive" in capsys.readouterr().out

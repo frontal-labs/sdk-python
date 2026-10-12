@@ -526,24 +526,28 @@ class WorkflowBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def description(
         self, text: str
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set a human-readable description of the workflow."""
         self._values["description"] = text
         return self
 
     def version(
         self, version: str
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the workflow definition version string."""
         self._values["version"] = version
         return self
 
     def variables(
         self, variables: Mapping[str, JSONValue]
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set default variables available to every step at runtime."""
         self._values["variables"] = dict(variables)
         return self
 
     def tags(
         self, *tags: str
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Attach free-text tags used for filtering in list calls."""
         current = cast(list[JSONValue], self._values["tags"])
         self._values["tags"] = [*current, *tags]
         return self
@@ -551,21 +555,25 @@ class WorkflowBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def trigger(
         self, trigger: WorkflowTrigger | Mapping[str, JSONValue]
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Append a trigger from a model or mapping."""
         value = _model_value(trigger)
         cast(list[JSONValue], self._values["triggers"]).append(value)
         return self
 
     def manual(self) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Add a manual trigger started explicitly via the API."""
         return self.trigger({"type": "manual"})
 
     def schedule(
         self, cron: str
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Add a cron schedule trigger (e.g. ``"0 9 * * *"``)."""
         return self.trigger({"type": "schedule", "schedule": cron})
 
     def event(
         self, event_type: str, config: Mapping[str, JSONValue] | None = None
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Add an event trigger that fires on the given event type."""
         value: dict[str, JSONValue] = {"type": "event", "eventType": event_type}
         if config is not None:
             value["config"] = dict(config)
@@ -574,11 +582,13 @@ class WorkflowBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def webhook(
         self, url: str
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Add a webhook trigger invoked by POSTing to the given URL."""
         return self.trigger({"type": "webhook", "webhookUrl": url})
 
     def step(
         self, step: WorkflowStep | Mapping[str, JSONValue]
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Append a raw step from a model or mapping."""
         cast(list[JSONValue], self._values["steps"]).append(_model_value(step))
         return self
 
@@ -592,6 +602,7 @@ class WorkflowBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
         depends_on: list[str] | None = None,
         timeout: str | None = None,
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Append a task step that executes code with the given config."""
         return self._append_step(
             {
                 "id": step_id,
@@ -611,6 +622,7 @@ class WorkflowBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
         depends_on: list[str] | None = None,
         timeout: str | None = None,
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Append an approval step pausing until an approver acts."""
         return self._append_step(
             {
                 "id": step_id,
@@ -629,6 +641,7 @@ class WorkflowBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
         description: str | None = None,
         depends_on: list[str] | None = None,
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Append a condition step branching on the given expression."""
         return self._append_step(
             {
                 "id": step_id,
@@ -647,6 +660,7 @@ class WorkflowBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
         description: str | None = None,
         depends_on: list[str] | None = None,
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Append a parallel step running the given step ids together."""
         return self._append_step(
             {
                 "id": step_id,
@@ -665,6 +679,7 @@ class WorkflowBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
         description: str | None = None,
         depends_on: list[str] | None = None,
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Append a delay step pausing for the given duration."""
         return self._append_step(
             {
                 "id": step_id,
@@ -684,6 +699,7 @@ class WorkflowBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
         description: str | None = None,
         depends_on: list[str] | None = None,
     ) -> WorkflowBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Append a notification step sending a message to channels."""
         return self._append_step(
             {
                 "id": step_id,
@@ -727,21 +743,28 @@ class WorkflowAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         self.id = workflow_id
 
     def get(self) -> JSONResultT:
+        """Get this workflow's current definition from the API."""
         return self._workflows.get_workflow(self.id)
 
     def update(self, definition: Mapping[str, JSONValue]) -> JSONResultT:
+        """Update this workflow's definition, sending a PATCH so omitted
+        fields are left unchanged."""
         return self._workflows.update_workflow(self.id, body=dict(definition))
 
     def delete(self) -> JSONResultT:
+        """Delete this workflow."""
         return self._workflows.delete_workflow(self.id)
 
     def activate(self) -> JSONResultT:
+        """Publish this workflow so it can accept executions."""
         return self._workflows.publish_workflow(self.id, body={})
 
     def archive(self) -> JSONResultT:
+        """Archive this workflow, stopping new executions."""
         return self._workflows.archive_workflow(self.id, body={})
 
     def restore(self) -> JSONResultT:
+        """Restore a previously archived workflow."""
         return self._workflows.restore_workflow(self.id, body={})
 
     def executions(
@@ -751,14 +774,17 @@ class WorkflowAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         limit: int | None = None,
         cursor: str | None = None,
     ) -> JSONResultT:
+        """List this workflow's executions with optional pagination."""
         query = _page_query(status=status, limit=limit, cursor=cursor)
         query["workflowId"] = self.id
         return self._workflows.list_executions(query=query)
 
     def execution(self, execution_id: str) -> JSONResultT:
+        """Get a single execution of this workflow by id."""
         return self._workflows.get_execution(execution_id)
 
     def trigger(self, input: Mapping[str, JSONValue] | None = None) -> JSONResultT:
+        """Start a new execution of this workflow with the given input."""
         return self._workflows.create_execution(
             body={"workflowId": self.id, "input": dict(input or {})}
         )
@@ -843,18 +869,23 @@ class WorkflowApprovals(Generic[JSONResultT, BytesResultT, StreamResultT]):
         limit: int | None = None,
         cursor: str | None = None,
     ) -> JSONResultT:
+        """List approvals, optionally filtered by status, with optional
+        status pagination."""
         return self._workflows.list_approvals(
             query=_page_query(status=status, limit=limit, cursor=cursor)
         )
 
     def get(self, approval_id: str) -> JSONResultT:
+        """Get a single approval request by id."""
         return self._workflows.get_approval(approval_id)
 
     def approve(self, approval_id: str, comment: str | None = None) -> JSONResultT:
+        """Approve a pending step, optionally attaching a comment."""
         body: dict[str, JSONValue] = {} if comment is None else {"comment": comment}
         return self._workflows.approve_approval(approval_id, body=body)
 
     def reject(self, approval_id: str, comment: str | None = None) -> JSONResultT:
+        """Reject a pending step, optionally attaching a comment."""
         body: dict[str, JSONValue] = {} if comment is None else {"comment": comment}
         return self._workflows.reject_approval(approval_id, body=body)
 
@@ -875,17 +906,21 @@ class WorkflowSteps(Generic[JSONResultT, BytesResultT, StreamResultT]):
         limit: int | None = None,
         cursor: str | None = None,
     ) -> JSONResultT:
+        """List tasks of one execution with optional status pagination."""
         return self._workflows.list_execution_tasks(
             execution_id, query=_page_query(status=status, limit=limit, cursor=cursor)
         )
 
     def get_task(self, task_id: str) -> JSONResultT:
+        """Get a single task by id."""
         return self._workflows.get_task(task_id)
 
     def retry_task(self, task_id: str) -> JSONResultT:
+        """Retry a failed or cancelled task."""
         return self._workflows.retry_task(task_id, body={})
 
     def cancel_task(self, task_id: str, reason: str | None = None) -> JSONResultT:
+        """Cancel a running task, optionally recording a reason."""
         body: dict[str, JSONValue] = {} if reason is None else {"reason": reason}
         return self._workflows.cancel_task(task_id, body=body)
 
@@ -897,6 +932,7 @@ class WorkflowSteps(Generic[JSONResultT, BytesResultT, StreamResultT]):
         limit: int | None = None,
         cursor: str | None = None,
     ) -> JSONResultT:
+        """List run steps of one run with optional status pagination."""
         return self._workflows.list_run_steps(
             run_id, query=_page_query(status=status, limit=limit, cursor=cursor)
         )
@@ -917,12 +953,14 @@ class WorkflowTemplates(Generic[JSONResultT, BytesResultT, StreamResultT]):
         limit: int | None = None,
         cursor: str | None = None,
     ) -> JSONResultT:
+        """List templates, optionally filtered by category."""
         query = _page_query(limit=limit, cursor=cursor)
         if category is not None:
             query["category"] = category
         return self._workflows.list_templates(query=query)
 
     def get(self, template_id: str) -> JSONResultT:
+        """Get a single template by id."""
         return self._workflows.get_template(template_id)
 
     def create(
@@ -933,6 +971,7 @@ class WorkflowTemplates(Generic[JSONResultT, BytesResultT, StreamResultT]):
         description: str | None = None,
         category: str | None = None,
     ) -> JSONResultT:
+        """Create a reusable template from a workflow definition."""
         model = _workflow_definition(definition)
         body: dict[str, JSONValue] = {
             "name": name,
@@ -948,6 +987,7 @@ class WorkflowTemplates(Generic[JSONResultT, BytesResultT, StreamResultT]):
         return self._workflows.create_template(body=body)
 
     def use(self, template_id: str, name: str) -> JSONResultT:
+        """Instantiate a template into a new workflow with the given name."""
         return self._workflows.instantiate_template(template_id, body={"name": name})
 
 

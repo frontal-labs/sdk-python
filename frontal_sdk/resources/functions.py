@@ -424,72 +424,84 @@ class FunctionBuilder(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def description(
         self, text: str
     ) -> FunctionBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set a human-readable description of the function."""
         self._values["description"] = text
         return self
 
     def runtime(
         self, runtime: FunctionRuntime
     ) -> FunctionBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the execution runtime (e.g. ``FunctionRuntime.PYTHON_3_12``)."""
         self._values["runtime"] = runtime
         return self
 
     def entrypoint(
         self, entrypoint: str
     ) -> FunctionBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the handler entrypoint (e.g. ``"handler.main"``)."""
         self._values["entrypoint"] = entrypoint
         return self
 
     def source(
         self, source: str
     ) -> FunctionBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the function source code."""
         self._values["source"] = source
         return self
 
     def input_schema(
         self, schema: Mapping[str, JSONValue]
     ) -> FunctionBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the JSON Schema describing the function input."""
         self._values["inputSchema"] = dict(schema)
         return self
 
     def output_schema(
         self, schema: Mapping[str, JSONValue]
     ) -> FunctionBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the JSON Schema describing the function output."""
         self._values["outputSchema"] = dict(schema)
         return self
 
     def dependencies(
         self, dependencies: list[str]
     ) -> FunctionBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set third-party package dependencies for the function."""
         self._values["dependencies"] = cast(JSONValue, dependencies)
         return self
 
     def env_vars(
         self, env_vars: Mapping[str, str]
     ) -> FunctionBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set non-secret environment variables for the function."""
         self._values["envVars"] = dict(env_vars)
         return self
 
     def secrets(
         self, secrets: list[str]
     ) -> FunctionBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the names of secrets injected at runtime."""
         self._values["secrets"] = cast(JSONValue, secrets)
         return self
 
     def memory(
         self, memory: int
     ) -> FunctionBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the memory limit in megabytes."""
         self._values["memory"] = memory
         return self
 
     def timeout(
         self, timeout: int
     ) -> FunctionBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set the execution timeout in seconds."""
         self._values["timeout"] = timeout
         return self
 
     def permissions(
         self, permissions: FunctionPermission | Mapping[str, JSONValue]
     ) -> FunctionBuilder[JSONResultT, BytesResultT, StreamResultT]:
+        """Set resource permissions from a model or mapping."""
         self._values["permissions"] = (
             cast(
                 JSONValue,
@@ -521,14 +533,18 @@ class FunctionAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         self.id = function_id
 
     def get(self) -> JSONResultT:
+        """Get this function's current definition from the API."""
         return self._functions.get(self.id)
 
     def update(
         self, definition: FunctionDefinition | Mapping[str, JSONValue]
     ) -> JSONResultT:
+        """Update this function's definition, sending a PATCH so omitted
+        fields are left unchanged."""
         return self._functions.update(self.id, definition)
 
     def delete(self) -> JSONResultT:
+        """Delete this function."""
         return self._functions.delete(self.id)
 
 

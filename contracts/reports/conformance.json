@@ -2,7 +2,22 @@
   "repository": "sdk-python",
   "language": "Python",
   "status": "implemented",
-  "matched": 370,
-  "unmatched": 0,
-  "note": "Hand-written resource methods match contracts/sdk-endpoints.json. Payloads use the validated JSON boundary where operation schemas are absent."
+  "inventoryMethodsImplemented": 383,
+  "inventoryMethodsUnimplemented": 0,
+  "note": "inventoryMethodsImplemented counts contracts/sdk-endpoints.json entries backed by hand-written resource methods; inventoryMethodsUnimplemented counts entries with no method. Snapshot conformance is reported separately under openapiConformance.",
+  "openapiConformance": {
+    "api": {
+      "snapshotOperations": 383,
+      "matchedByInventory": 142,
+      "inventoryOperationsAbsentFromSnapshot": 227,
+      "snapshotOperationsOutsideInventory": 241
+    },
+    "ai": {
+      "snapshotOperations": 7,
+      "matchedByInventory": 7,
+      "inventoryOperationsAbsentFromSnapshot": 0,
+      "snapshotOperationsOutsideInventory": 0
+    }
+  },
+  "openapiNote": "contracts/openapi/api.openapi.json is the pinned upstream snapshot (sha256 in contracts/openapi/manifest.json) and covers a subset of the API with a different path vocabulary, so the gaps above are expected. It is authoritative and not edited here; contracts/coverage-floor.json ratchets the matched baseline."
 }

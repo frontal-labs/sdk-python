@@ -245,6 +245,7 @@ class AI(
         return prompt
 
     def update_prompt(self, name: str, updates: Mapping[str, JSONValue]) -> Prompt:
+        """Apply partial field updates to a stored prompt template."""
         prompt = self.get_prompt(name)
         values = prompt.model_dump(mode="python", by_alias=False)
         values.update(updates)
@@ -253,17 +254,21 @@ class AI(
         return updated
 
     def chain_prompts(self, *prompts: Prompt) -> PromptChain:
+        """Combine prompts into an ordered chain executed in sequence."""
         return PromptChain(prompts=list(prompts))
 
     def step_count_is(self, count: int) -> None:
+        """Set the current step counter used for progress tracking."""
         if count < 0:
             raise ValueError("step count must be non-negative")
         self._current_step = count
 
     def get_current_step(self) -> int:
+        """Return the current step counter value."""
         return self._current_step
 
     def reset_steps(self) -> None:
+        """Reset the step counter back to zero."""
         self._current_step = 0
 
 
@@ -931,6 +936,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
     def generate_image(
         self, options: GenerateImageOptions | Mapping[str, JSONValue]
     ) -> GenerateImageResult:
+        """Generate images from a text prompt and return their URLs."""
         values = (
             options
             if isinstance(options, GenerateImageOptions)
@@ -952,6 +958,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
     def generate_video(
         self, options: GenerateVideoOptions | Mapping[str, JSONValue]
     ) -> GenerateVideoResult:
+        """Generate a video from a text prompt and return its location."""
         values = (
             options
             if isinstance(options, GenerateVideoOptions)
@@ -966,6 +973,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
     def transcribe(
         self, options: TranscriptionOptions | Mapping[str, object]
     ) -> TranscriptionResult:
+        """Transcribe uploaded audio and return the recognized text."""
         values = (
             options
             if isinstance(options, TranscriptionOptions)
@@ -990,6 +998,7 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
     def moderate(
         self, options: ModerationOptions | Mapping[str, JSONValue]
     ) -> ModerationResult:
+        """Score input text for policy violations and return flags."""
         values = (
             options
             if isinstance(options, ModerationOptions)
@@ -1002,6 +1011,8 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
         return ModerationResult.model_validate(self.create_prediction(body=body))
 
     def rerank(self, options: RerankOptions | Mapping[str, JSONValue]) -> RerankResult:
+        """Score candidate documents against the query; apply the scores to
+        reorder the documents yourself."""
         values = (
             options
             if isinstance(options, RerankOptions)
@@ -1219,6 +1230,7 @@ class AsyncAI(
     async def generate_speech(
         self, options: GenerateSpeechOptions | Mapping[str, JSONValue]
     ) -> bytes:
+        """Generate speech and return the raw audio bytes."""
         values = (
             options
             if isinstance(options, GenerateSpeechOptions)
@@ -1240,6 +1252,7 @@ class AsyncAI(
     async def generate_image(
         self, options: GenerateImageOptions | Mapping[str, JSONValue]
     ) -> GenerateImageResult:
+        """Generate images from a text prompt and return their URLs."""
         values = (
             options
             if isinstance(options, GenerateImageOptions)
@@ -1261,6 +1274,7 @@ class AsyncAI(
     async def generate_video(
         self, options: GenerateVideoOptions | Mapping[str, JSONValue]
     ) -> GenerateVideoResult:
+        """Generate a video from a text prompt and return its location."""
         values = (
             options
             if isinstance(options, GenerateVideoOptions)
@@ -1276,6 +1290,7 @@ class AsyncAI(
     async def transcribe(
         self, options: TranscriptionOptions | Mapping[str, object]
     ) -> TranscriptionResult:
+        """Transcribe uploaded audio and return the recognized text."""
         values = (
             options
             if isinstance(options, TranscriptionOptions)
@@ -1300,6 +1315,7 @@ class AsyncAI(
     async def moderate(
         self, options: ModerationOptions | Mapping[str, JSONValue]
     ) -> ModerationResult:
+        """Score input text for policy violations and return flags."""
         values = (
             options
             if isinstance(options, ModerationOptions)
@@ -1315,6 +1331,8 @@ class AsyncAI(
     async def rerank(
         self, options: RerankOptions | Mapping[str, JSONValue]
     ) -> RerankResult:
+        """Score candidate documents against the query; apply the scores to
+        reorder the documents yourself."""
         values = (
             options
             if isinstance(options, RerankOptions)

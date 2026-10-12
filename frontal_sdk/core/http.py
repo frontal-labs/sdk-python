@@ -167,6 +167,10 @@ def _api_error(response: httpx.Response, method: str) -> FrontalError:
     elif response.content:
         details = decoded if isinstance(decoded, (dict, list)) else response.text[:2048]
 
+    # ``safe_to_retry``: GET/HEAD/OPTIONS are idempotent; all other methods
+    # (POST/PUT/DELETE) are not automatically replayed — TS documents this
+    # policy ("Mutation requests are never replayed automatically").
+    _safe = method in {"GET", "HEAD", "OPTIONS"}
     return error_for_status(
         response.status_code,
         message,
@@ -175,7 +179,7 @@ def _api_error(response: httpx.Response, method: str) -> FrontalError:
         details=details,
         fields=fields,
         retry_after=_parse_retry_after(response.headers.get("retry-after")),
-        safe_to_retry=method in {"GET", "HEAD", "OPTIONS", "PUT", "DELETE"},
+        safe_to_retry=_safe,
     )
 
 
