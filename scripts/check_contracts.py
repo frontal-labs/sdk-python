@@ -204,6 +204,34 @@ def matches_operation(
 
 
 def main() -> None:
+    """Validate the committed contracts and report snapshot conformance."""
+    inventory, coverage_floor = validate_inputs()
+    specs = load_specs()
+
+    sdk_by_surface: dict[str, list[tuple[str, tuple[str, ...]]]] = defaultdict(list)
+    errors: list[str] = []
+    missing_from_spec: list[tuple[str, str, str]] = []
+    expected_count = 0
+
+    for domain, entries in inventory.items():
+        domain_count, domain_drift = process_domain(
+            domain, entries, specs, sdk_by_surface, errors
+        )
+        expected_count += domain_count
+        missing_from_spec.extend(domain_drift)
+
+    collect_obsolete_package_errors(errors)
+    coverage, uncovered_spec = compute_coverage(specs, sdk_by_surface)
+
+    if errors:
+        raise SystemExit("\n".join(errors))
+
+    print_summary(expected_count, coverage, missing_from_spec, uncovered_spec)
+    print_floor_drift(coverage, coverage_floor)
+
+
+def validate_inputs() -> tuple[dict[str, Any], dict[str, Any]]:
+    """Load the shared contract inputs and check the coverage floor shape."""
     for path in FILES:
         load_json(path)
 
@@ -211,81 +239,39 @@ def main() -> None:
     coverage_floor = load_json(COVERAGE_FLOOR_PATH)
     if not isinstance(inventory, dict):
         raise SystemExit("endpoint inventory must be a JSON object")
+    if not isinstance(coverage_floor, dict):
+        raise SystemExit("coverage floor must be a JSON object")
     for surface in ("api", "ai"):
         value = coverage_floor.get(surface)
         if not isinstance(value, int) or value < 0:
             raise SystemExit(
                 f"coverage floor must contain a non-negative {surface} count"
             )
+    return inventory, coverage_floor
 
-    specs = {
+
+def load_specs() -> dict[str, set[tuple[str, str]]]:
+    """Parse the published OpenAPI snapshots for both surfaces."""
+    return {
         "api": parse_openapi(API_OPENAPI_PATH),
         "ai": parse_openapi(AI_OPENAPI_PATH),
     }
-    sdk_by_surface: dict[str, list[tuple[str, tuple[str, ...]]]] = defaultdict(list)
-    errors: list[str] = []
-    missing_from_spec: list[tuple[str, str, str]] = []
-    expected_count = 0
 
-    for domain, entries in inventory.items():
-        if not isinstance(domain, str) or not isinstance(entries, list):
-            errors.append(f"invalid endpoint inventory entry: {domain!r}")
-            continue
-        resource_path = ROOT / "frontal_sdk/resources" / f"{domain}.py"
-        if not entries:
-            if resource_path.exists():
-                errors.append(f"unexpected resource module for empty domain: {domain}")
-            continue
-        if not resource_path.is_file():
-            errors.append(f"missing resource module: {resource_path.relative_to(ROOT)}")
-            continue
 
-        implemented, resource_errors = resource_operations(resource_path)
-        errors.extend(resource_errors)
-        expected: set[tuple[str, str]] = set()
-        surface = "ai" if domain == "ai" else "api"
-        for entry in entries:
-            if not isinstance(entry, dict):
-                errors.append(f"invalid operation in {domain}: {entry!r}")
-                continue
-            method, path = entry.get("method"), entry.get("path")
-            if not isinstance(method, str) or not isinstance(path, str):
-                errors.append(f"invalid method/path in {domain}: {entry!r}")
-                continue
-            expected.add((method, path))
-            resolved_method = resolve_method(method)
-            if not surface_allows(surface, path):
-                errors.append(
-                    f"forbidden {surface} surface operation: {domain} {method} {path}"
-                )
-            sdk_candidates = candidate_paths(surface, path)
-            sdk_by_surface[surface].append((resolved_method, sdk_candidates))
-            if not any(
-                resolved_method == spec_method
-                and any(
-                    path_matches(spec_path, candidate) for candidate in sdk_candidates
-                )
-                for spec_method, spec_path in specs[surface]
-            ):
-                missing_from_spec.append((domain, method, path))
-
-        if len(expected) != len(entries):
-            errors.append(f"duplicate operations in {domain} endpoint inventory")
-        missing = expected - implemented
-        unexpected = implemented - expected
-        if missing or unexpected:
-            errors.append(
-                f"resource mismatch for {domain}: missing={sorted(missing)}, "
-                f"unexpected={sorted(unexpected)}"
-            )
-        expected_count += len(expected)
-
+def collect_obsolete_package_errors(errors: list[str]) -> None:
+    """Flag packages that were removed from the SDK but still exist."""
     for obsolete_package in ("services", "utils"):
         if (ROOT / "frontal_sdk" / obsolete_package).exists():
             errors.append(
                 f"obsolete frontal_sdk/{obsolete_package} package still exists"
             )
 
+
+def compute_coverage(
+    specs: dict[str, set[tuple[str, str]]],
+    sdk_by_surface: dict[str, list[tuple[str, tuple[str, ...]]]],
+) -> tuple[dict[str, tuple[int, int]], dict[str, list[tuple[str, str]]]]:
+    """Match each snapshot operation against the endpoint inventory."""
     coverage: dict[str, tuple[int, int]] = {}
     uncovered_spec: dict[str, list[tuple[str, str]]] = {}
     for surface, operations in specs.items():
@@ -296,10 +282,123 @@ def main() -> None:
         ]
         coverage[surface] = (len(operations) - len(uncovered), len(operations))
         uncovered_spec[surface] = uncovered
+    return coverage, uncovered_spec
 
-    if errors:
-        raise SystemExit("\n".join(errors))
 
+def process_domain(
+    domain: Any,
+    entries: Any,
+    specs: dict[str, set[tuple[str, str]]],
+    sdk_by_surface: dict[str, list[tuple[str, tuple[str, ...]]]],
+    errors: list[str],
+) -> tuple[int, list[tuple[str, str, str]]]:
+    """Validate one inventory domain, returning its size and any snapshot drift."""
+    if not isinstance(domain, str) or not isinstance(entries, list):
+        errors.append(f"invalid endpoint inventory entry: {domain!r}")
+        return 0, []
+
+    resource_path = ROOT / "frontal_sdk/resources" / f"{domain}.py"
+    if not entries:
+        if resource_path.exists():
+            errors.append(f"unexpected resource module for empty domain: {domain}")
+        return 0, []
+
+    if not resource_path.is_file():
+        errors.append(f"missing resource module: {resource_path.relative_to(ROOT)}")
+        return 0, []
+
+    implemented, resource_errors = resource_operations(resource_path)
+    errors.extend(resource_errors)
+    surface = "ai" if domain == "ai" else "api"
+    expected, missing_from_spec = domain_expected_operations(
+        domain, entries, surface, specs, sdk_by_surface, errors
+    )
+
+    if len(expected) != len(entries):
+        errors.append(f"duplicate operations in {domain} endpoint inventory")
+    report_resource_mismatch(domain, expected, implemented, errors)
+    return len(expected), missing_from_spec
+
+
+def domain_expected_operations(
+    domain: str,
+    entries: list[Any],
+    surface: str,
+    specs: dict[str, set[tuple[str, str]]],
+    sdk_by_surface: dict[str, list[tuple[str, tuple[str, ...]]]],
+    errors: list[str],
+) -> tuple[set[tuple[str, str]], list[tuple[str, str, str]]]:
+    """Expand inventory entries into the operations a resource must expose."""
+    expected: set[tuple[str, str]] = set()
+    missing_from_spec: list[tuple[str, str, str]] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            errors.append(f"invalid operation in {domain}: {entry!r}")
+            continue
+        method, path = entry.get("method"), entry.get("path")
+        if not isinstance(method, str) or not isinstance(path, str):
+            errors.append(f"invalid method/path in {domain}: {entry!r}")
+            continue
+        expected.add((method, path))
+        if not surface_allows(surface, path):
+            errors.append(
+                f"forbidden {surface} surface operation: {domain} {method} {path}"
+            )
+        resolved_method = resolve_method(method)
+        sdk_candidates = candidate_paths(surface, path)
+        sdk_by_surface[surface].append((resolved_method, sdk_candidates))
+        if not operation_in_spec(resolved_method, sdk_candidates, specs[surface]):
+            missing_from_spec.append((domain, method, path))
+    return expected, missing_from_spec
+
+
+def report_resource_mismatch(
+    domain: str,
+    expected: set[tuple[str, str]],
+    implemented: set[tuple[str, str]],
+    errors: list[str],
+) -> None:
+    """Compare the operations a resource implements against the inventory."""
+    missing = expected - implemented
+    unexpected = implemented - expected
+    if missing or unexpected:
+        errors.append(
+            f"resource mismatch for {domain}: missing={sorted(missing)}, "
+            f"unexpected={sorted(unexpected)}"
+        )
+
+
+def operation_in_spec(
+    method: str, candidates: tuple[str, ...], spec: set[tuple[str, str]]
+) -> bool:
+    """Report whether a resource operation appears in an OpenAPI snapshot."""
+    return any(
+        spec_method == method
+        and any(path_matches(spec_path, candidate) for candidate in candidates)
+        for spec_method, spec_path in spec
+    )
+
+
+def print_floor_drift(
+    coverage: dict[str, tuple[int, int]], coverage_floor: dict[str, Any]
+) -> None:
+    """Report parts of a surface whose matched baseline fell below its floor."""
+    for surface, actual in coverage.items():
+        floor = coverage_floor[surface]
+        if actual[0] < floor:
+            print(
+                f"OpenAPI coverage floor drift for {surface}: "
+                f"{actual[0]} matched, previous floor {floor}"
+            )
+
+
+def print_summary(
+    expected_count: int,
+    coverage: dict[str, tuple[int, int]],
+    missing_from_spec: list[tuple[str, str, str]],
+    uncovered_spec: dict[str, list[tuple[str, str]]],
+) -> None:
+    """Print the contract summary followed by the informational drift reports."""
     api_covered, api_total = coverage["api"]
     ai_covered, ai_total = coverage["ai"]
     print(
@@ -328,13 +427,6 @@ def main() -> None:
         )
         for group in sorted(uncovered_counts):
             print(f"  {group}: {uncovered_counts[group]} operations")
-    for surface, actual in coverage.items():
-        floor = coverage_floor[surface]
-        if actual[0] < floor:
-            print(
-                f"OpenAPI coverage floor drift for {surface}: "
-                f"{actual[0]} matched, previous floor {floor}"
-            )
 
 
 if __name__ == "__main__":
