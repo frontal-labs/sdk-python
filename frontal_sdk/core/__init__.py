@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from frontal_sdk.core.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
+from frontal_sdk.core.circuit_breaker import (
+    CircuitBreaker,
+    CircuitBreakerConfig,
+    CircuitBreakerOpenError,
+    CircuitState,
+)
 from frontal_sdk.core.config import ClientConfig
 from frontal_sdk.core.constants import DEFAULT_BASE_URL, SDK_VERSION
 from frontal_sdk.core.errors import (
@@ -31,6 +36,8 @@ __all__ = [
     "calculate_delay",
     "CircuitBreaker",
     "CircuitBreakerConfig",
+    "CircuitBreakerOpenError",
+    "CircuitState",
     "ClientConfig",
     "ConflictError",
     "DEFAULT_BASE_URL",
