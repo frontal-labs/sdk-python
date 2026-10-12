@@ -11,7 +11,8 @@ default branch (`main`) with these settings:
 - Require these CI checks: `Python 3.9 (ubuntu-latest)`,
   `Python 3.10 (ubuntu-latest)`, `Python 3.11 (ubuntu-latest)`,
   `Python 3.12 (ubuntu-latest)`, `Python 3.12 (macos-latest)`, and
-  `Python 3.12 (windows-latest)`.
+  `Python 3.12 (windows-latest)`. Also require `Conventional Commits / title`
+  for pull request titles.
 - Require the `CodeQL / analyze` and `Dependency review` checks.
 - Require linear history. Block force pushes and branch deletion.
 - Allow squash merges only and use the pull request title as the squash commit

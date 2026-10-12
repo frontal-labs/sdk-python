@@ -1,0 +1,29 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "Frontal Python SDK",
+  "description": "Sync and async Python client library for the Frontal API, with httpx transports, Pydantic v2 boundary models, service resources, and SSE streaming.",
+  "folders": [],
+  "excludeFolders": [
+    ".git",
+    ".venv",
+    "node_modules",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".mypy_cache",
+    ".pyright",
+    "dist",
+    "build",
+    "htmlcov",
+    "test-results",
+    "tmp",
+    "temp"
+  ],
+  "rules": [
+    "The PyPI distribution is named frontal and its import package is frontal_sdk; support Python 3.9 through 3.12.",
+    "Use contracts/sdk-endpoints.json and contracts/openapi as the source of truth for endpoint methods and paths.",
+    "Keep shared transport behavior in frontal_sdk/core, boundary models in frontal_sdk/models, service methods in frontal_sdk/resources, and the sync and async clients in frontal_sdk/client.py.",
+    "Use uv with the Hatchling backend, ruff, mypy --strict, pytest, and anyio as configured in pyproject.toml.",
+    "Ship inline typing and frontal_sdk/py.typed, and keep tests offline with RESPX."
+  ]
+}
