@@ -19,7 +19,11 @@ def tracked_markdown() -> list[Path]:
         text=True,
         check=True,
     ).stdout
-    return [ROOT / line for line in output.splitlines() if line]
+    # ``git ls-files`` still lists tracked paths whose deletion has not been
+    # staged, so check the working tree to avoid linking to a missing file.
+    return [
+        ROOT / line for line in output.splitlines() if line and (ROOT / line).is_file()
+    ]
 
 
 paths = sorted(p for p in tracked_markdown() if p.name != "PLAN.md")
