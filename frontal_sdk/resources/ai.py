@@ -1011,7 +1011,8 @@ class SyncAI(AI[JSONValue, bytes, Iterator[ServerEvent]]):
         return ModerationResult.model_validate(self.create_prediction(body=body))
 
     def rerank(self, options: RerankOptions | Mapping[str, JSONValue]) -> RerankResult:
-        """Reorder candidate documents by relevance to the query."""
+        """Score candidate documents against the query; apply the scores to
+        reorder the documents yourself."""
         values = (
             options
             if isinstance(options, RerankOptions)
@@ -1330,7 +1331,8 @@ class AsyncAI(
     async def rerank(
         self, options: RerankOptions | Mapping[str, JSONValue]
     ) -> RerankResult:
-        """Reorder candidate documents by relevance to the query."""
+        """Score candidate documents against the query; apply the scores to
+        reorder the documents yourself."""
         values = (
             options
             if isinstance(options, RerankOptions)

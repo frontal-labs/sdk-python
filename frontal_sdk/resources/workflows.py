@@ -747,7 +747,8 @@ class WorkflowAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
         return self._workflows.get_workflow(self.id)
 
     def update(self, definition: Mapping[str, JSONValue]) -> JSONResultT:
-        """Replace this workflow's definition with the given fields."""
+        """Update this workflow's definition, sending a PATCH so omitted
+        fields are left unchanged."""
         return self._workflows.update_workflow(self.id, body=dict(definition))
 
     def delete(self) -> JSONResultT:
@@ -868,7 +869,8 @@ class WorkflowApprovals(Generic[JSONResultT, BytesResultT, StreamResultT]):
         limit: int | None = None,
         cursor: str | None = None,
     ) -> JSONResultT:
-        """List pending approvals with optional status pagination."""
+        """List approvals, optionally filtered by status, with optional
+        status pagination."""
         return self._workflows.list_approvals(
             query=_page_query(status=status, limit=limit, cursor=cursor)
         )

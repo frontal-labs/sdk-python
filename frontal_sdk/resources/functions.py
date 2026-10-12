@@ -539,7 +539,8 @@ class FunctionAccessor(Generic[JSONResultT, BytesResultT, StreamResultT]):
     def update(
         self, definition: FunctionDefinition | Mapping[str, JSONValue]
     ) -> JSONResultT:
-        """Replace this function's definition with the given fields."""
+        """Update this function's definition, sending a PATCH so omitted
+        fields are left unchanged."""
         return self._functions.update(self.id, definition)
 
     def delete(self) -> JSONResultT:
