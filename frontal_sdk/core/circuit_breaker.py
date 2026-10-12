@@ -61,6 +61,11 @@ class CircuitBreaker:
     While the circuit is ``open`` (or a half-open probe is in
     flight) calls raise :class:`CircuitBreakerOpenError` instead of
     reaching the API. A successful probe closes the circuit again.
+
+    Transition callbacks are invoked without the breaker lock held,
+    so a callback may read :attr:`state` or :attr:`failures`. It must
+    not call back into the breaker (for example :meth:`force_close`),
+    which recurses instead of blocking.
     """
 
     def __init__(self, config: CircuitBreakerConfig | None = None) -> None:
@@ -93,22 +98,20 @@ class CircuitBreaker:
         ``is_failure`` classifies a returned (non-raising) result
         as a failure, so HTTP error responses can count too.
         """
-        probe = self._enter()
+        probe, announce = self._enter()
+        _notify(announce)
         try:
             try:
                 result = fn()
                 failed = is_failure is not None and is_failure(result)
-            except BaseException:
+            except Exception:
                 with self._lock:
-                    self._record_failure(probe)
+                    announce = self._record_failure(probe)
+                _notify(announce)
                 raise
             with self._lock:
-                if failed:
-                    self._record_failure(probe)
-                elif probe:
-                    self._reset()
-                else:
-                    self._failures = 0
+                announce = self._record(failed, probe)
+            _notify(announce)
             return result
         finally:
             with self._lock:
@@ -121,22 +124,20 @@ class CircuitBreaker:
         is_failure: Callable[[ResultT], bool] | None = None,
     ) -> ResultT:
         """Run an awaitable ``fn`` through the breaker."""
-        probe = self._enter()
+        probe, announce = self._enter()
+        _notify(announce)
         try:
             try:
                 result = await fn()
                 failed = is_failure is not None and is_failure(result)
-            except BaseException:
+            except Exception:
                 with self._lock:
-                    self._record_failure(probe)
+                    announce = self._record_failure(probe)
+                _notify(announce)
                 raise
             with self._lock:
-                if failed:
-                    self._record_failure(probe)
-                elif probe:
-                    self._reset()
-                else:
-                    self._failures = 0
+                announce = self._record(failed, probe)
+            _notify(announce)
             return result
         finally:
             with self._lock:
@@ -153,40 +154,68 @@ class CircuitBreaker:
     def force_close(self) -> None:
         """Manually reset the circuit to the ``closed`` state."""
         with self._lock:
-            self._reset()
+            announce = self._reset()
+        _notify(announce)
 
-    def _enter(self) -> bool:
-        """Apply state transitions before a call; return whether
-        this call is a half-open probe."""
+    def _enter(self) -> tuple[bool, list[Callable[[], None] | None]]:
+        """Apply state transitions before a call.
+
+        Return whether this call is a half-open probe, along with the
+        transition callbacks to run once the lock has been released.
+        """
         with self._lock:
+            announce: list[Callable[[], None] | None] = []
             if self._state == "open":
                 elapsed = time.monotonic() - self._last_failure
                 if elapsed <= self._config.reset_timeout:
                     raise CircuitBreakerOpenError(self._config.reset_timeout - elapsed)
                 self._state = "half_open"
-                if self._config.on_half_open is not None:
-                    self._config.on_half_open()
-            probe = self._state == "half_open"
-            if probe:
+                announce.append(self._config.on_half_open)
+            if self._state == "half_open":
                 if self._probe_in_flight:
                     raise CircuitBreakerOpenError(self._config.reset_timeout)
                 self._probe_in_flight = True
-            return probe
+                return True, announce
+            return False, announce
 
-    def _record_failure(self, probe: bool) -> None:
+    def _record(self, failed: bool, probe: bool) -> list[Callable[[], None] | None]:
+        """Record a call that returned, returning the transition to announce.
+
+        The caller holds ``self._lock``; taking it here would self-deadlock.
+        """
+        if failed:
+            return self._record_failure(probe)
+        if probe:
+            return self._reset()
+        self._failures = 0
+        return []
+
+    def _record_failure(self, probe: bool) -> list[Callable[[], None] | None]:
+        """Count a failure; the caller holds ``self._lock``."""
         self._failures += 1
         self._last_failure = time.monotonic()
         if probe or self._failures >= self._config.failure_threshold:
             if self._state != "open":
                 self._state = "open"
-                if self._config.on_open is not None:
-                    self._config.on_open()
+                return [self._config.on_open]
+        return []
 
-    def _reset(self) -> None:
+    def _reset(self) -> list[Callable[[], None] | None]:
+        """Return the circuit to closed; the caller holds ``self._lock``."""
         self._failures = 0
         self._state = "closed"
-        if self._config.on_close is not None:
-            self._config.on_close()
+        return [self._config.on_close]
+
+
+def _notify(callbacks: list[Callable[[], None] | None]) -> None:
+    """Invoke transition callbacks while no breaker lock is held.
+
+    Callbacks run outside the lock so a callback may read ``state`` or
+    ``failures``, or call ``force_close``, without deadlocking the breaker.
+    """
+    for callback in callbacks:
+        if callback is not None:
+            callback()
 
 
 __all__ = [
